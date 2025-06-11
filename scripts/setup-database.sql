@@ -8,9 +8,21 @@ ALTER TABLE public.user_organizations ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view all profiles" ON public.profiles
   FOR SELECT USING (true);
 
--- PATCH /api/profiles/:id - Update own profile
+-- PATCH /api/profiles/:id - Update own profile (except role)
 CREATE POLICY "Users can update own profile" ON public.profiles
-  FOR UPDATE USING (auth.uid() = id);
+  FOR UPDATE USING (
+    auth.uid() = id AND 
+    (NEW.role IS NULL OR NEW.role = OLD.role)
+  );
+
+-- PATCH /api/profiles/:id - Update user role (admin only)
+CREATE POLICY "Only admins can update user roles" ON public.profiles
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
 
 -- POST /api/profiles - Create own profile
 CREATE POLICY "Users can insert own profile" ON public.profiles
@@ -76,3 +88,14 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Function to get organization member counts
+CREATE OR REPLACE FUNCTION public.get_organization_member_counts()
+RETURNS TABLE (organization_id integer, count bigint) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT uo.organization_id, COUNT(*)::bigint
+  FROM user_organizations uo
+  GROUP BY uo.organization_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

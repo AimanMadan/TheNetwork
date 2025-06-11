@@ -140,4 +140,79 @@ export const databaseService = {
     // Filter out organizations user has already joined
     return allOrgs.filter((org) => !userOrgIds.includes(org.id))
   },
+
+  /**
+   * Updates a user's role in the database.
+   * Only accessible by users with admin role (enforced by RLS).
+   * @param userId - The ID of the user to update
+   * @param role - The new role to assign ("user" or "admin")
+   * @throws Error if database update fails or user lacks permission
+   */
+  async updateUserRole(userId: string, role: "user" | "admin"): Promise<void> {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ role })
+      .eq("id", userId)
+
+    if (error) throw error
+  },
+
+  /**
+   * Gets the number of members for each organization.
+   * @returns Promise<{ [key: number]: number }> Object mapping organization IDs to their member counts
+   * @throws Error if database query fails
+   */
+  async getOrganizationMemberCounts(): Promise<{ [key: number]: number }> {
+    const { data, error } = await supabase
+      .from('user_organizations')
+      .select('organization_id')
+
+    if (error) {
+      console.error('Error fetching member counts:', error)
+      throw error
+    }
+
+    // Count the occurrences of each organization_id
+    const counts: { [key: number]: number } = {}
+    data.forEach((item: any) => {
+      const orgId = item.organization_id
+      counts[orgId] = (counts[orgId] || 0) + 1
+    })
+    return counts
+  },
+
+  /**
+   * Gets all members of a specific organization.
+   * @param organizationId - The ID of the organization
+   * @returns Promise<Profile[]> Array of profiles that are members of the organization
+   * @throws Error if database query fails
+   */
+  async getOrganizationMembers(orgId: number): Promise<Profile[]> {
+    try {
+      const { data: userOrgs, error: userOrgsError } = await supabase
+        .from("user_organizations")
+        .select("user_id")
+        .eq("organization_id", orgId)
+
+      if (userOrgsError) throw userOrgsError
+
+      if (!userOrgs || userOrgs.length === 0) {
+        return []
+      }
+
+      const userIds = userOrgs.map((uo) => uo.user_id)
+
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("*")
+        .in("id", userIds)
+
+      if (profilesError) throw profilesError
+
+      return profiles || []
+    } catch (error) {
+      console.error("Error getting organization members:", error)
+      throw error
+    }
+  }
 }

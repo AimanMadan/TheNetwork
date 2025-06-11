@@ -5,6 +5,7 @@ import { DashboardHeader } from "@/components/dashboard-header"
 import { CommunityMembersTable } from "@/components/community-members-table"
 import { OrganizationsToJoinTable } from "@/components/organizations-to-join-table"
 import { AdminOrganizationManagement } from "@/components/admin-organization-management"
+import { AdminUserManagement } from "@/components/admin-user-management"
 import { AuthGuard } from "@/components/auth-guard"
 import { useAuth } from "@/hooks/use-auth"
 import { databaseService } from "@/lib/database"
@@ -34,9 +35,11 @@ export default function DashboardPage() {
       setMembers(membersData)
 
       if (user?.role === "admin") {
-        // Admin: Load all organizations
+        // Admin: Load all organizations and joined status
         const orgsData = await databaseService.getAllOrganizations()
+        const joinedOrgs = await databaseService.getUserOrganizations(user.id)
         setOrganizations(orgsData)
+        setJoinedOrganizationIds(joinedOrgs)
       } else {
         // Regular user: Load all organizations and joined status
         const allOrgs = await databaseService.getAllOrganizations()
@@ -114,6 +117,19 @@ export default function DashboardPage() {
     }
   }
 
+  const handleUpdateUserRole = async (userId: string, newRole: "user" | "admin") => {
+    try {
+      await databaseService.updateUserRole(userId, newRole)
+      // Refresh members list to show updated roles
+      const membersData = await databaseService.getAllProfiles()
+      setMembers(membersData)
+      toast.success("User role updated successfully!")
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update user role")
+      throw error
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -131,10 +147,14 @@ export default function DashboardPage() {
           {user?.role === "admin" ? (
             <div className="space-y-6">
               <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
+              <AdminUserManagement users={members} onUpdateUserRole={handleUpdateUserRole} />
               <AdminOrganizationManagement
                 organizations={organizations}
                 onAddOrganization={handleAddOrganization}
                 onDeleteOrganization={handleDeleteOrganization}
+                onJoinOrganization={handleJoinOrganization}
+                onLeaveOrganization={handleLeaveOrganization}
+                joinedOrganizationIds={joinedOrganizationIds}
               />
             </div>
           ) : (

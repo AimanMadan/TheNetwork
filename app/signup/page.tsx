@@ -52,7 +52,7 @@ export default function SignUpPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="first_name" className="text-gray-300">
-                First Name
+                First Name *
               </Label>
               <Input
                 id="first_name"
@@ -65,7 +65,7 @@ export default function SignUpPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="last_name" className="text-gray-300">
-                Last Name
+                Last Name *
               </Label>
               <Input
                 id="last_name"
@@ -80,7 +80,7 @@ export default function SignUpPage() {
 
           <div className="space-y-2">
             <Label htmlFor="job_title" className="text-gray-300">
-              Job Title
+              Job Title *
             </Label>
             <Input
               id="job_title"
@@ -94,7 +94,7 @@ export default function SignUpPage() {
 
           <div className="space-y-2">
             <Label htmlFor="linkedin_account" className="text-gray-300">
-              LinkedIn Profile URL
+              LinkedIn Profile URL *
             </Label>
             <Input
               id="linkedin_account"
@@ -110,7 +110,7 @@ export default function SignUpPage() {
 
           <div className="space-y-2">
             <Label htmlFor="email" className="text-gray-300">
-              Email
+              Email *
             </Label>
             <Input
               id="email"
@@ -125,7 +125,7 @@ export default function SignUpPage() {
 
           <div className="space-y-2">
             <Label htmlFor="password" className="text-gray-300">
-              Password
+              Password *
             </Label>
             <Input
               id="password"
