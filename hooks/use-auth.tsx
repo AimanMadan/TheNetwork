@@ -13,6 +13,7 @@ interface AuthContextType {
   signUp: (data: SignUpData) => Promise<void>
   signOut: () => Promise<void>
   refreshUser: () => Promise<void>
+  signInWithGoogle: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -68,6 +69,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(profile)
   }
 
+  const signInWithGoogle = async () => {
+    await authService.signInWithGoogle()
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -77,6 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signUp,
         signOut,
         refreshUser,
+        signInWithGoogle,
       }}
     >
       {children}
