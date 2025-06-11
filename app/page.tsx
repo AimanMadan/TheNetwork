@@ -2,6 +2,10 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
+// Enable dynamic rendering
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">

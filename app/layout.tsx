@@ -10,8 +10,12 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "User & Organization Dashboard",
   description: "Modern dashboard for managing users and organizations",
-    generator: 'v0.dev'
+  generator: 'v0.dev'
 }
+
+// Enable dynamic rendering
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export default function RootLayout({
   children,
