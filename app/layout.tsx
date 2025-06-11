@@ -1,0 +1,41 @@
+import type React from "react"
+import type { Metadata } from "next"
+import { Inter } from "next/font/google"
+import { AuthProvider } from "@/hooks/use-auth"
+import { Toaster } from "sonner"
+import "./globals.css"
+
+const inter = Inter({ subsets: ["latin"] })
+
+export const metadata: Metadata = {
+  title: "User & Organization Dashboard",
+  description: "Modern dashboard for managing users and organizations",
+    generator: 'v0.dev'
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en" className="dark">
+      <body className={inter.className}>
+        <AuthProvider>
+          {children}
+          <Toaster
+            theme="dark"
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: "#374151",
+                color: "#f3f4f6",
+                border: "1px solid #4b5563",
+              },
+            }}
+          />
+        </AuthProvider>
+      </body>
+    </html>
+  )
+}
