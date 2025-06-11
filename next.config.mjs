@@ -8,9 +8,7 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
-  },
-  basePath: process.env.NODE_ENV === 'production' ? '/user-org-dashboard' : '',
-  output: 'export',
+  }
 }
 
 export default nextConfig
