@@ -19,6 +19,7 @@ export default function DashboardPage() {
   const [availableOrganizations, setAvailableOrganizations] = useState<Organization[]>([])
   const [joinedOrganizationIds, setJoinedOrganizationIds] = useState<number[]>([])
   const [loading, setLoading] = useState(true)
+  const [memberCounts, setMemberCounts] = useState<{ [key: number]: number }>({})
 
   useEffect(() => {
     if (user) {
@@ -30,22 +31,26 @@ export default function DashboardPage() {
     try {
       setLoading(true)
 
-      // Load all members
-      const membersData = await databaseService.getAllProfiles()
-      setMembers(membersData)
+      // Load member counts for all organizations
+      const counts = await databaseService.getOrganizationMemberCounts()
+      setMemberCounts(counts)
+
+      // Fetch all organizations and user's joined organizations
+      const [allOrgs, joinedOrgs] = await Promise.all([
+        databaseService.getAllOrganizations(),
+        databaseService.getUserOrganizations(user!.id),
+      ])
+
+      setJoinedOrganizationIds(joinedOrgs)
 
       if (user?.role === "admin") {
-        // Admin: Load all organizations and joined status
-        const orgsData = await databaseService.getAllOrganizations()
-        const joinedOrgs = await databaseService.getUserOrganizations(user.id)
-        setOrganizations(orgsData)
-        setJoinedOrganizationIds(joinedOrgs)
+        // Admin sees all organizations and all profiles
+        setOrganizations(allOrgs)
+        const allProfiles = await databaseService.getAllProfiles()
+        setMembers(allProfiles)
       } else {
-        // Regular user: Load all organizations and joined status
-        const allOrgs = await databaseService.getAllOrganizations()
-        const joinedOrgs = await databaseService.getUserOrganizations(user!.id)
+        // Regular user sees all organizations to browse
         setAvailableOrganizations(allOrgs)
-        setJoinedOrganizationIds(joinedOrgs)
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to load data")
@@ -73,6 +78,9 @@ export default function DashboardPage() {
       // Update joined organizations
       const joinedOrgs = await databaseService.getUserOrganizations(user.id)
       setJoinedOrganizationIds(joinedOrgs)
+
+      // Refresh data
+      await loadData()
     } catch (error: any) {
       toast.error(error.message || "Failed to join organization")
       throw error // Re-throw to handle loading state in component
@@ -89,6 +97,9 @@ export default function DashboardPage() {
       // Update joined organizations
       const joinedOrgs = await databaseService.getUserOrganizations(user.id)
       setJoinedOrganizationIds(joinedOrgs)
+
+      // Refresh data
+      await loadData()
     } catch (error: any) {
       toast.error(error.message || "Failed to leave organization")
       throw error // Re-throw to handle loading state in component
@@ -155,16 +166,20 @@ export default function DashboardPage() {
                 onJoinOrganization={handleJoinOrganization}
                 onLeaveOrganization={handleLeaveOrganization}
                 joinedOrganizationIds={joinedOrganizationIds}
+                memberCounts={memberCounts}
               />
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <CommunityMembersTable members={members} />
+            <div className="space-y-6">
+              <h1 className="text-3xl font-bold text-white">
+                Organizations
+              </h1>
               <OrganizationsToJoinTable
                 organizations={availableOrganizations}
                 onJoinOrganization={handleJoinOrganization}
                 onLeaveOrganization={handleLeaveOrganization}
                 joinedOrganizationIds={joinedOrganizationIds}
+                memberCounts={memberCounts}
               />
             </div>
           )}

@@ -1,5 +1,5 @@
 import { supabase } from "./supabase"
-import type { Profile, Organization } from "./types"
+import type { Profile, Organization, Membership } from "./types"
 
 /**
  * Database service that handles all interactions with Supabase database.
@@ -13,10 +13,19 @@ export const databaseService = {
    * @throws Error if database query fails
    */
   async getAllProfiles(): Promise<Profile[]> {
-    const { data, error } = await supabase.from("profiles").select("*").order("first_name")
+    try {
+      // Use RPC function to get all profiles, bypassing RLS restrictions for admin users
+      const { data, error } = await supabase.rpc("get_all_profiles_admin")
 
-    if (error) throw error
-    return data as Profile[]
+      if (error) {
+        throw new Error(`Failed to get all profiles: ${error.message}`)
+      }
+
+      return data || []
+    } catch (error) {
+      console.error("Error getting all profiles:", error)
+      throw error
+    }
   },
 
   /**
@@ -32,6 +41,25 @@ export const databaseService = {
       if (error.code === "PGRST116") return null // No rows returned
       throw error
     }
+    return data as Profile
+  },
+
+  /**
+   * Updates a user's profile with new information.
+   * @param userId - The unique identifier of the user
+   * @param profileData - The profile data to update
+   * @returns Promise<Profile> The updated profile
+   * @throws Error if database update fails
+   */
+  async updateProfile(userId: string, profileData: Partial<Omit<Profile, 'id' | 'email' | 'role'>>): Promise<Profile> {
+    const { data, error } = await supabase
+      .from("profiles")
+      .update(profileData)
+      .eq("id", userId)
+      .select()
+      .single()
+
+    if (error) throw error
     return data as Profile
   },
 
@@ -189,30 +217,37 @@ export const databaseService = {
    */
   async getOrganizationMembers(orgId: number): Promise<Profile[]> {
     try {
-      const { data: userOrgs, error: userOrgsError } = await supabase
-        .from("user_organizations")
-        .select("user_id")
-        .eq("organization_id", orgId)
+      // Use RPC function to get organization members, bypassing RLS restrictions
+      const { data, error } = await supabase.rpc("get_organization_members", {
+        org_id: orgId,
+      })
 
-      if (userOrgsError) throw userOrgsError
-
-      if (!userOrgs || userOrgs.length === 0) {
-        return []
+      if (error) {
+        throw new Error(`Failed to get organization members: ${error.message}`)
       }
 
-      const userIds = userOrgs.map((uo) => uo.user_id)
-
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("*")
-        .in("id", userIds)
-
-      if (profilesError) throw profilesError
-
-      return profiles || []
+      return data || []
     } catch (error) {
       console.error("Error getting organization members:", error)
       throw error
     }
+  },
+
+  async getMembershipsByOrgIds(
+    orgIds: number[]
+  ): Promise<Membership[]> {
+    if (orgIds.length === 0) return []
+
+    const { data, error } = await supabase.rpc("get_memberships_by_org_ids", {
+      org_ids: orgIds,
+    })
+
+    if (error) {
+      // Supabase RPC calls can return user-friendly errors from the DB
+      throw new Error(
+        `Failed to get memberships: ${error.message}`
+      )
+    }
+    return data || []
   }
 }

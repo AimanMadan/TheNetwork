@@ -6,6 +6,7 @@ export interface Profile {
   linkedin_account: string | null
   email: string | null
   role: "user" | "admin"
+  avatar_url?: string
 }
 
 export interface Organization {
@@ -14,6 +15,11 @@ export interface Organization {
 }
 
 export interface UserOrganization {
+  user_id: string
+  organization_id: number
+}
+
+export type Membership = {
   user_id: string
   organization_id: number
 }

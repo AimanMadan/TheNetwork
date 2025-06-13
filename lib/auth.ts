@@ -53,8 +53,51 @@ export const authService = {
 
     const { data: profile, error } = await supabase.from("profiles").select("*").eq("id", user.id).single()
 
+    if (error) {
+      if (error.code === "PGRST116") {
+        // Profile doesn't exist, create one (this happens with OAuth)
+        return await this.createProfileFromAuthUser(user)
+      }
+      throw error
+    }
+    return profile as Profile
+  },
+
+  async createProfileFromAuthUser(user: any): Promise<Profile> {
+    // Extract data from Google user metadata
+    const fullName = user.user_metadata?.full_name || user.user_metadata?.name || ""
+    const nameParts = fullName.split(' ')
+    const firstName = user.user_metadata?.given_name || user.user_metadata?.first_name || nameParts[0] || null
+    const lastName = user.user_metadata?.family_name || user.user_metadata?.last_name || nameParts.slice(1).join(' ') || null
+
+    const profileData = {
+      id: user.id,
+      email: user.email,
+      first_name: firstName,
+      last_name: lastName,
+      job_title: null,
+      linkedin_account: null,
+      role: "user" as const,
+      avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+    }
+
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .insert(profileData)
+      .select()
+      .single()
+
     if (error) throw error
     return profile as Profile
+  },
+
+  isProfileComplete(profile: Profile): boolean {
+    return !!(
+      profile.first_name &&
+      profile.last_name &&
+      profile.job_title &&
+      profile.linkedin_account
+    )
   },
 
   onAuthStateChange(callback: (user: any) => void) {

@@ -3,18 +3,21 @@
 import type React from "react"
 
 import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
+import { authService } from "@/lib/auth"
 
 interface AuthGuardProps {
   children: React.ReactNode
   requireAuth?: boolean
   redirectTo?: string
+  skipProfileCheck?: boolean
 }
 
-export function AuthGuard({ children, requireAuth = true, redirectTo = "/login" }: AuthGuardProps) {
+export function AuthGuard({ children, requireAuth = true, redirectTo = "/login", skipProfileCheck = false }: AuthGuardProps) {
   const { user, loading } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
     if (!loading) {
@@ -22,9 +25,14 @@ export function AuthGuard({ children, requireAuth = true, redirectTo = "/login" 
         router.push(redirectTo)
       } else if (!requireAuth && user) {
         router.push("/dashboard")
+      } else if (requireAuth && user && !skipProfileCheck && pathname !== "/onboarding") {
+        // Check if profile is complete, redirect to onboarding if not
+        if (!authService.isProfileComplete(user)) {
+          router.push("/onboarding")
+        }
       }
     }
-  }, [user, loading, requireAuth, redirectTo, router])
+  }, [user, loading, requireAuth, redirectTo, router, skipProfileCheck, pathname])
 
   if (loading) {
     return (

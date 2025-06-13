@@ -36,6 +36,7 @@ interface AdminOrganizationManagementProps {
   onJoinOrganization: (orgId: number) => Promise<void>
   onLeaveOrganization: (orgId: number) => Promise<void>
   joinedOrganizationIds: number[]
+  memberCounts: { [key: number]: number }
 }
 
 export function AdminOrganizationManagement({
@@ -45,13 +46,13 @@ export function AdminOrganizationManagement({
   onJoinOrganization,
   onLeaveOrganization,
   joinedOrganizationIds,
+  memberCounts
 }: AdminOrganizationManagementProps) {
   const [newOrgName, setNewOrgName] = useState("")
   const [isAdding, setIsAdding] = useState(false)
   const [deletingOrgs, setDeletingOrgs] = useState<Set<number>>(new Set())
   const [joiningOrgs, setJoiningOrgs] = useState<Set<number>>(new Set())
   const [leavingOrgs, setLeavingOrgs] = useState<Set<number>>(new Set())
-  const [memberCounts, setMemberCounts] = useState<{ [key: number]: number }>({})
   const [selectedOrgMembers, setSelectedOrgMembers] = useState<Profile[]>([])
   const [selectedOrgName, setSelectedOrgName] = useState("")
   const [isLoadingMembers, setIsLoadingMembers] = useState(false)
@@ -64,7 +65,6 @@ export function AdminOrganizationManagement({
     try {
       const counts = await databaseService.getOrganizationMemberCounts()
       console.log('Member counts:', counts)
-      setMemberCounts(counts)
     } catch (error) {
       console.error("Failed to load member counts:", error)
     }
