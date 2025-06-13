@@ -45,22 +45,46 @@ export const databaseService = {
   },
 
   /**
-   * Updates a user's profile with new information.
+   * Updates a user's profile with new information, or creates it if it doesn't exist.
    * @param userId - The unique identifier of the user
    * @param profileData - The profile data to update
-   * @returns Promise<Profile> The updated profile
-   * @throws Error if database update fails
+   * @returns Promise<Profile> The updated/created profile
+   * @throws Error if database operation fails
    */
   async updateProfile(userId: string, profileData: Partial<Omit<Profile, 'id' | 'email' | 'role'>>): Promise<Profile> {
-    const { data, error } = await supabase
+    // First, try to get the current user's auth data to ensure we have email
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+    if (authError || !authUser) {
+      throw new Error('Unable to get authenticated user')
+    }
+
+    // Prepare the full profile data for upsert
+    const fullProfileData = {
+      id: userId,
+      email: authUser.email,
+      role: 'user' as const, // Default role for new profiles
+      ...profileData
+    }
+
+    console.log('Upserting profile with data:', fullProfileData)
+
+    // Use upsert to either update existing profile or create new one
+    const { data: profile, error } = await supabase
       .from("profiles")
-      .update(profileData)
-      .eq("id", userId)
+      .upsert(fullProfileData, { 
+        onConflict: 'id',
+        ignoreDuplicates: false 
+      })
       .select()
       .single()
 
-    if (error) throw error
-    return data as Profile
+    if (error) {
+      console.error('Error upserting profile:', error)
+      throw error
+    }
+    
+    console.log('Profile upsert successful:', profile)
+    return profile as Profile
   },
 
   // Organization operations

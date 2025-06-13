@@ -26,12 +26,24 @@ export default function OnboardingPage() {
   useEffect(() => {
     // Pre-fill form with existing user data if available
     if (user) {
+      console.log('Onboarding - User data:', {
+        id: user.id,
+        email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        job_title: user.job_title,
+        linkedin_account: user.linkedin_account,
+        role: user.role
+      })
+      
       setFormData({
         first_name: user.first_name || "",
         last_name: user.last_name || "",
         job_title: user.job_title || "",
         linkedin_account: user.linkedin_account || "",
       })
+    } else {
+      console.log('Onboarding - No user data available')
     }
   }, [user])
 
@@ -47,13 +59,18 @@ export default function OnboardingPage() {
     setIsLoading(true)
 
     try {
-      // Update the user's profile with the provided information
-      await databaseService.updateProfile(user.id, {
+      console.log('Onboarding - Starting profile update for user:', user.id)
+      console.log('Onboarding - Form data:', formData)
+
+      // Update/create the user's profile with the provided information
+      const updatedProfile = await databaseService.updateProfile(user.id, {
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
         job_title: formData.job_title.trim(),
         linkedin_account: formData.linkedin_account.trim(),
       })
+
+      console.log('Onboarding - Profile update successful:', updatedProfile)
 
       // Refresh user data
       await refreshUser()
@@ -61,6 +78,7 @@ export default function OnboardingPage() {
       toast.success("Profile completed successfully!")
       router.push("/dashboard")
     } catch (error: any) {
+      console.error('Onboarding - Error updating profile:', error)
       toast.error(error.message || "Failed to update profile")
     } finally {
       setIsLoading(false)
