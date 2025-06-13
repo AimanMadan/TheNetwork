@@ -77,7 +77,10 @@ export default function OnboardingPage() {
       <AuthLayout title="Complete Your Profile">
         <div className="mb-6 text-center">
           <p className="text-gray-400 text-sm">
-            Please complete your profile information to continue
+            All fields are required to access your dashboard
+          </p>
+          <p className="text-gray-500 text-xs mt-1">
+            You cannot proceed until all information is provided
           </p>
         </div>
 

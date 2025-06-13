@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { DashboardHeader } from "@/components/dashboard-header"
-import { CommunityMembersTable } from "@/components/community-members-table"
 import { OrganizationsToJoinTable } from "@/components/organizations-to-join-table"
 import { AdminOrganizationManagement } from "@/components/admin-organization-management"
 import { AdminUserManagement } from "@/components/admin-user-management"
@@ -11,6 +10,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { databaseService } from "@/lib/database"
 import type { Profile, Organization } from "@/lib/types"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 export default function DashboardPage() {
   const { user, signOut } = useAuth()
@@ -20,16 +20,43 @@ export default function DashboardPage() {
   const [joinedOrganizationIds, setJoinedOrganizationIds] = useState<number[]>([])
   const [loading, setLoading] = useState(true)
   const [memberCounts, setMemberCounts] = useState<{ [key: number]: number }>({})
+  const router = useRouter()
 
   useEffect(() => {
+    console.log('Dashboard - User changed:', user)
     if (user) {
+      console.log('Dashboard - User profile:', {
+        id: user.id,
+        email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        job_title: user.job_title,
+        linkedin_account: user.linkedin_account,
+        role: user.role
+      })
+
+      // Double-check profile completion before loading dashboard data
+      const isComplete = !!(
+        user.first_name && user.first_name.trim() !== "" &&
+        user.last_name && user.last_name.trim() !== "" &&
+        user.job_title && user.job_title.trim() !== "" &&
+        user.linkedin_account && user.linkedin_account.trim() !== ""
+      )
+
+      if (!isComplete) {
+        console.log('Dashboard - Profile incomplete, redirecting to onboarding')
+        router.push('/onboarding')
+        return
+      }
+
       loadData()
     }
-  }, [user])
+  }, [user, router])
 
   const loadData = async () => {
     try {
       setLoading(true)
+      console.log('Dashboard - Loading data for user:', user?.email)
 
       // Load member counts for all organizations
       const counts = await databaseService.getOrganizationMemberCounts()
@@ -42,17 +69,21 @@ export default function DashboardPage() {
       ])
 
       setJoinedOrganizationIds(joinedOrgs)
+      console.log('Dashboard - User role:', user?.role)
 
       if (user?.role === "admin") {
+        console.log('Dashboard - Loading admin data')
         // Admin sees all organizations and all profiles
         setOrganizations(allOrgs)
         const allProfiles = await databaseService.getAllProfiles()
         setMembers(allProfiles)
       } else {
+        console.log('Dashboard - Loading regular user data')
         // Regular user sees all organizations to browse
         setAvailableOrganizations(allOrgs)
       }
     } catch (error: any) {
+      console.error('Dashboard - Error loading data:', error)
       toast.error(error.message || "Failed to load data")
     } finally {
       setLoading(false)
