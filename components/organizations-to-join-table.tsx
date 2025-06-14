@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { ExternalLink } from "lucide-react"
 import type { Organization, Profile } from "@/lib/types"
 import { databaseService } from "@/lib/database"
 
@@ -39,10 +40,13 @@ export function OrganizationsToJoinTable({
     setIsLoadingMembers(true)
     setSelectedOrgName(org.name)
     try {
+      console.log('Attempting to load members for organization:', org.id, org.name)
       const members = await databaseService.getOrganizationMembers(org.id)
+      console.log('Members loaded successfully:', members)
       setSelectedOrgMembers(members)
     } catch (error) {
       console.error("Failed to load organization members:", error)
+      console.error("Error details:", error)
     } finally {
       setIsLoadingMembers(false)
     }
@@ -129,6 +133,7 @@ export function OrganizationsToJoinTable({
                                 <TableHead className="text-gray-300">Name</TableHead>
                                 <TableHead className="text-gray-300">Job Title</TableHead>
                                 <TableHead className="text-gray-300">Role</TableHead>
+                                <TableHead className="text-gray-300">LinkedIn</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -144,6 +149,20 @@ export function OrganizationsToJoinTable({
                                     }`}>
                                       {member.role}
                                     </span>
+                                  </TableCell>
+                                  <TableCell className="text-gray-200">
+                                    {member.linkedin_account ? (
+                                      <a
+                                        href={member.linkedin_account}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center justify-center gap-1 text-blue-400 hover:text-blue-300 transition-colors"
+                                      >
+                                        <ExternalLink className="h-4 w-4" />
+                                      </a>
+                                    ) : (
+                                      "N/A"
+                                    )}
                                   </TableCell>
                                 </TableRow>
                               ))}
