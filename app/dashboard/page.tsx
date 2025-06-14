@@ -115,10 +115,15 @@ export default function DashboardPage() {
 
     try {
       await databaseService.requestToJoin(user.id, orgId)
-      toast.success("Request sent successfully!")
+      
+      // Determine the status based on user role
+      const status = user.role === 'admin' ? 'approved' : 'pending'
+      const message = user.role === 'admin' ? 'Successfully joined organization!' : 'Request sent successfully!'
+      
+      toast.success(message)
 
       // Update memberships map
-      setMemberships(prev => new Map(prev).set(orgId, 'pending'))
+      setMemberships(prev => new Map(prev).set(orgId, status))
     } catch (error: any) {
       toast.error(error.message || "Failed to send join request")
       throw error

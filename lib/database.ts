@@ -324,10 +324,22 @@ export const databaseService = {
    * @throws Error if database insert fails or user lacks permission
    */
   async requestToJoin(userId: string, organizationId: number): Promise<void> {
+    // Check if the user is an admin
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .single()
+
+    if (profileError) throw profileError
+
+    // Admins are automatically approved, regular users are pending
+    const status = profile.role === 'admin' ? 'approved' : 'pending'
+
     const { error } = await supabase.from("user_organizations").insert({
       user_id: userId,
       organization_id: organizationId,
-      status: 'pending'
+      status: status
     })
 
     if (error) throw error
