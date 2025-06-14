@@ -209,6 +209,47 @@ export default function DashboardPage() {
     }
   }
 
+  const refreshUserMemberships = async () => {
+    if (!user) return
+    
+    try {
+      const userMemberships = await databaseService.getUserMemberships(user.id)
+      const membershipsMap = new Map(
+        userMemberships.map((m: Membership) => [m.organization_id, m.status])
+      )
+      setMemberships(membershipsMap)
+    } catch (error: any) {
+      console.error('Error refreshing user memberships:', error)
+    }
+  }
+
+  // Add effect to refresh memberships when window regains focus
+  useEffect(() => {
+    const handleFocus = () => {
+      refreshUserMemberships()
+      if (user?.role === "admin") {
+        refreshCounts()
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [user])
+
+  // Add periodic refresh for memberships
+  useEffect(() => {
+    if (!user) return
+
+    const interval = setInterval(() => {
+      refreshUserMemberships()
+      if (user?.role === "admin") {
+        refreshCounts()
+      }
+    }, 30000) // Refresh every 30 seconds
+
+    return () => clearInterval(interval)
+  }, [user])
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -237,6 +278,7 @@ export default function DashboardPage() {
                 memberCounts={memberCounts}
                 pendingCounts={pendingCounts}
                 onRefreshCounts={refreshCounts}
+                onRefreshMemberships={refreshUserMemberships}
               />
             </div>
           ) : (

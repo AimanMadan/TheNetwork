@@ -39,6 +39,7 @@ interface AdminOrganizationManagementProps {
   memberCounts: { [key: number]: number }
   pendingCounts: { [key: number]: number }
   onRefreshCounts: () => Promise<void>
+  onRefreshMemberships?: () => Promise<void>
 }
 
 export function AdminOrganizationManagement({
@@ -50,7 +51,8 @@ export function AdminOrganizationManagement({
   memberships,
   memberCounts,
   pendingCounts,
-  onRefreshCounts
+  onRefreshCounts,
+  onRefreshMemberships
 }: AdminOrganizationManagementProps) {
   const [newOrgName, setNewOrgName] = useState("")
   const [isAdding, setIsAdding] = useState(false)
@@ -182,8 +184,11 @@ export function AdminOrganizationManagement({
       await databaseService.approveMembershipRequest(userId, selectedOrgId)
       // Remove from pending requests list
       setPendingRequests(prev => prev.filter(req => req.id !== userId))
-      // Refresh data to update counts
+      // Refresh data to update counts and memberships
       await onRefreshCounts()
+      if (onRefreshMemberships) {
+        await onRefreshMemberships()
+      }
     } catch (error) {
       console.error("Failed to approve request:", error)
     } finally {
@@ -203,8 +208,11 @@ export function AdminOrganizationManagement({
       await databaseService.rejectMembershipRequest(userId, selectedOrgId)
       // Remove from pending requests list
       setPendingRequests(prev => prev.filter(req => req.id !== userId))
-      // Refresh data to update counts
+      // Refresh data to update counts and memberships
       await onRefreshCounts()
+      if (onRefreshMemberships) {
+        await onRefreshMemberships()
+      }
     } catch (error) {
       console.error("Failed to reject request:", error)
     } finally {
