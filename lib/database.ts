@@ -155,10 +155,12 @@ export const databaseService = {
    * @throws Error if database delete fails or user lacks permission
    */
   async leaveOrganization(userId: string, organizationId: number): Promise<void> {
-    const { error } = await supabase.from("user_organizations")
+    const { error } = await supabase
+      .from("user_organizations")
       .delete()
       .eq("user_id", userId)
       .eq("organization_id", organizationId)
+      .eq("status", 'approved')
 
     if (error) throw error
   },
@@ -215,22 +217,33 @@ export const databaseService = {
    * @throws Error if database query fails
    */
   async getOrganizationMemberCounts(): Promise<{ [key: number]: number }> {
-    const { data, error } = await supabase
-      .from('user_organizations')
-      .select('organization_id')
+    try {
+      // Get all organizations first
+      const allOrgs = await this.getAllOrganizations()
+      const orgIds = allOrgs.map(org => org.id)
 
-    if (error) {
+      // Use RPC function to get memberships, respecting RLS
+      const { data, error } = await supabase.rpc("get_memberships_by_org_ids", {
+        org_ids: orgIds
+      })
+
+      if (error) {
+        throw new Error(`Failed to get member counts: ${error.message}`)
+      }
+
+      // Count only approved members for each organization
+      const counts: { [key: number]: number } = {}
+      data.forEach((item: any) => {
+        if (item.status === 'approved') {
+          const orgId = item.organization_id
+          counts[orgId] = (counts[orgId] || 0) + 1
+        }
+      })
+      return counts
+    } catch (error) {
       console.error('Error fetching member counts:', error)
       throw error
     }
-
-    // Count the occurrences of each organization_id
-    const counts: { [key: number]: number } = {}
-    data.forEach((item: any) => {
-      const orgId = item.organization_id
-      counts[orgId] = (counts[orgId] || 0) + 1
-    })
-    return counts
   },
 
   /**
@@ -241,7 +254,7 @@ export const databaseService = {
    */
   async getOrganizationMembers(orgId: number): Promise<Profile[]> {
     try {
-      // Use RPC function to get organization members, bypassing RLS restrictions
+      // Use RPC function to get organization members, respecting RLS
       const { data, error } = await supabase.rpc("get_organization_members", {
         org_id: orgId,
       })
@@ -282,17 +295,26 @@ export const databaseService = {
    * @throws Error if database query fails
    */
   async getUserMemberships(userId: string): Promise<Membership[]> {
-    const { data, error } = await supabase
-      .from("user_organizations")
-      .select("organization_id, status")
-      .eq("user_id", userId)
+    try {
+      // Get all organizations first
+      const allOrgs = await this.getAllOrganizations()
+      const orgIds = allOrgs.map(org => org.id)
 
-    if (error) throw error
-    return data.map(item => ({
-      user_id: userId,
-      organization_id: item.organization_id,
-      status: item.status
-    })) as Membership[]
+      // Use RPC function to get memberships, respecting RLS
+      const { data, error } = await supabase.rpc("get_memberships_by_org_ids", {
+        org_ids: orgIds
+      })
+
+      if (error) {
+        throw new Error(`Failed to get memberships: ${error.message}`)
+      }
+
+      // Filter memberships for the specific user
+      return (data || []).filter((m: Membership) => m.user_id === userId)
+    } catch (error) {
+      console.error("Error getting user memberships:", error)
+      throw error
+    }
   },
 
   /**
