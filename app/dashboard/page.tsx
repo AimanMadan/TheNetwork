@@ -196,6 +196,19 @@ export default function DashboardPage() {
     }
   }
 
+  const refreshCounts = async () => {
+    try {
+      const [counts, pendingRequestCounts] = await Promise.all([
+        databaseService.getOrganizationMemberCounts(),
+        databaseService.getOrganizationPendingCounts()
+      ])
+      setMemberCounts(counts)
+      setPendingCounts(pendingRequestCounts)
+    } catch (error: any) {
+      console.error('Error refreshing counts:', error)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -223,6 +236,7 @@ export default function DashboardPage() {
                 memberships={memberships}
                 memberCounts={memberCounts}
                 pendingCounts={pendingCounts}
+                onRefreshCounts={refreshCounts}
               />
             </div>
           ) : (

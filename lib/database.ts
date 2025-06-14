@@ -395,5 +395,67 @@ export const databaseService = {
       console.error('Error fetching pending counts:', error)
       throw error
     }
+  },
+
+  /**
+   * Gets pending membership requests for a specific organization.
+   * @param organizationId - The ID of the organization
+   * @returns Promise<Profile[]> Array of profiles with pending requests
+   * @throws Error if database query fails
+   */
+  async getPendingRequests(organizationId: number): Promise<Profile[]> {
+    try {
+      const { data, error } = await supabase
+        .from('user_organizations')
+        .select(`
+          user_id,
+          profiles!inner(*)
+        `)
+        .eq('organization_id', organizationId)
+        .eq('status', 'pending')
+
+      if (error) {
+        throw new Error(`Failed to get pending requests: ${error.message}`)
+      }
+
+      return data.map(item => item.profiles).flat()
+    } catch (error) {
+      console.error("Error getting pending requests:", error)
+      throw error
+    }
+  },
+
+  /**
+   * Approves a pending membership request.
+   * @param userId - The ID of the user to approve
+   * @param organizationId - The ID of the organization
+   * @throws Error if database update fails or user lacks permission
+   */
+  async approveMembershipRequest(userId: string, organizationId: number): Promise<void> {
+    const { error } = await supabase
+      .from("user_organizations")
+      .update({ status: 'approved' })
+      .eq("user_id", userId)
+      .eq("organization_id", organizationId)
+      .eq("status", 'pending')
+
+    if (error) throw error
+  },
+
+  /**
+   * Rejects a pending membership request.
+   * @param userId - The ID of the user to reject
+   * @param organizationId - The ID of the organization
+   * @throws Error if database delete fails or user lacks permission
+   */
+  async rejectMembershipRequest(userId: string, organizationId: number): Promise<void> {
+    const { error } = await supabase
+      .from("user_organizations")
+      .delete()
+      .eq("user_id", userId)
+      .eq("organization_id", organizationId)
+      .eq("status", 'pending')
+
+    if (error) throw error
   }
 }

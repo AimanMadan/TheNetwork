@@ -25,7 +25,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Trash2, Users, ExternalLink } from "lucide-react"
+import { Trash2, Users, ExternalLink, Check, X } from "lucide-react"
 import { databaseService } from "@/lib/database"
 import type { Organization, Profile } from "@/lib/types"
 
@@ -38,6 +38,7 @@ interface AdminOrganizationManagementProps {
   memberships: Map<number, 'pending' | 'approved'>
   memberCounts: { [key: number]: number }
   pendingCounts: { [key: number]: number }
+  onRefreshCounts: () => Promise<void>
 }
 
 export function AdminOrganizationManagement({
@@ -48,7 +49,8 @@ export function AdminOrganizationManagement({
   onLeaveOrganization,
   memberships,
   memberCounts,
-  pendingCounts
+  pendingCounts,
+  onRefreshCounts
 }: AdminOrganizationManagementProps) {
   const [newOrgName, setNewOrgName] = useState("")
   const [isAdding, setIsAdding] = useState(false)
@@ -58,6 +60,10 @@ export function AdminOrganizationManagement({
   const [selectedOrgMembers, setSelectedOrgMembers] = useState<Profile[]>([])
   const [selectedOrgName, setSelectedOrgName] = useState("")
   const [isLoadingMembers, setIsLoadingMembers] = useState(false)
+  const [pendingRequests, setPendingRequests] = useState<Profile[]>([])
+  const [selectedOrgId, setSelectedOrgId] = useState<number | null>(null)
+  const [isLoadingPending, setIsLoadingPending] = useState(false)
+  const [processingRequests, setProcessingRequests] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     loadMemberCounts()
@@ -149,6 +155,64 @@ export function AdminOrganizationManagement({
       console.error("Error details:", error)
     } finally {
       setIsLoadingMembers(false)
+    }
+  }
+
+  const handleViewPendingRequests = async (org: Organization) => {
+    setIsLoadingPending(true)
+    setSelectedOrgName(org.name)
+    setSelectedOrgId(org.id)
+    try {
+      console.log('Loading pending requests for organization:', org.id, org.name)
+      const requests = await databaseService.getPendingRequests(org.id)
+      console.log('Pending requests loaded:', requests)
+      setPendingRequests(requests)
+    } catch (error) {
+      console.error("Failed to load pending requests:", error)
+    } finally {
+      setIsLoadingPending(false)
+    }
+  }
+
+  const handleApproveRequest = async (userId: string) => {
+    if (!selectedOrgId) return
+    
+    setProcessingRequests(prev => new Set(prev).add(userId))
+    try {
+      await databaseService.approveMembershipRequest(userId, selectedOrgId)
+      // Remove from pending requests list
+      setPendingRequests(prev => prev.filter(req => req.id !== userId))
+      // Refresh data to update counts
+      await onRefreshCounts()
+    } catch (error) {
+      console.error("Failed to approve request:", error)
+    } finally {
+      setProcessingRequests(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(userId)
+        return newSet
+      })
+    }
+  }
+
+  const handleRejectRequest = async (userId: string) => {
+    if (!selectedOrgId) return
+    
+    setProcessingRequests(prev => new Set(prev).add(userId))
+    try {
+      await databaseService.rejectMembershipRequest(userId, selectedOrgId)
+      // Remove from pending requests list
+      setPendingRequests(prev => prev.filter(req => req.id !== userId))
+      // Refresh data to update counts
+      await onRefreshCounts()
+    } catch (error) {
+      console.error("Failed to reject request:", error)
+    } finally {
+      setProcessingRequests(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(userId)
+        return newSet
+      })
     }
   }
 
@@ -267,11 +331,88 @@ export function AdminOrganizationManagement({
                     </Dialog>
                   </TableCell>
                   <TableCell className="text-gray-200">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      (pendingCounts[org.id] || 0) > 0 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-500/20 text-gray-400'
-                    }`}>
-                      {pendingCounts[org.id] || 0} pending
-                    </span>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={`px-2 py-1 rounded-full text-xs ${
+                            (pendingCounts[org.id] || 0) > 0 
+                              ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30' 
+                              : 'bg-gray-500/20 text-gray-400 cursor-default'
+                          }`}
+                          onClick={() => (pendingCounts[org.id] || 0) > 0 && handleViewPendingRequests(org)}
+                          disabled={(pendingCounts[org.id] || 0) === 0}
+                        >
+                          {pendingCounts[org.id] || 0} pending
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl">
+                        <DialogHeader>
+                          <DialogTitle className="text-white">Pending Requests - {selectedOrgName}</DialogTitle>
+                        </DialogHeader>
+                        {isLoadingPending ? (
+                          <div className="flex justify-center py-4">
+                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                          </div>
+                        ) : pendingRequests.length === 0 ? (
+                          <div className="text-center py-4 text-gray-400">
+                            No pending requests
+                          </div>
+                        ) : (
+                          <div className="max-h-[400px] overflow-y-auto">
+                            <div className="space-y-3">
+                              {pendingRequests.map((request) => (
+                                <div key={request.id} className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-3">
+                                      <div>
+                                        <h4 className="font-medium text-white">
+                                          {request.first_name} {request.last_name}
+                                        </h4>
+                                        <p className="text-sm text-gray-400">{request.job_title || "N/A"}</p>
+                                        <p className="text-sm text-gray-400">{request.email}</p>
+                                      </div>
+                                      {request.linkedin_account && (
+                                        <a
+                                          href={request.linkedin_account}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-blue-400 hover:text-blue-300"
+                                        >
+                                          <ExternalLink className="h-4 w-4" />
+                                        </a>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleApproveRequest(request.id)}
+                                      disabled={processingRequests.has(request.id)}
+                                      className="bg-green-600 hover:bg-green-700 text-white"
+                                    >
+                                      <Check className="h-4 w-4 mr-1" />
+                                      {processingRequests.has(request.id) ? "Approving..." : "Approve"}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleRejectRequest(request.id)}
+                                      disabled={processingRequests.has(request.id)}
+                                      variant="destructive"
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      <X className="h-4 w-4 mr-1" />
+                                      {processingRequests.has(request.id) ? "Rejecting..." : "Reject"}
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </DialogContent>
+                    </Dialog>
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
