@@ -430,11 +430,18 @@ export function AdminOrganizationManagement({
                         disabled={joiningOrgs.has(org.id) || memberships.has(org.id)}
                         className={`${
                           memberships.has(org.id)
-                            ? "bg-gray-600 cursor-not-allowed"
+                            ? memberships.get(org.id) === 'approved'
+                              ? "bg-green-600 cursor-not-allowed"
+                              : "bg-yellow-600 cursor-not-allowed"
                             : "bg-blue-600 hover:bg-blue-700"
                         } text-white`}
                       >
-                        {joiningOrgs.has(org.id) ? "Joining..." : memberships.has(org.id) ? "Joined" : "Join"}
+                        {joiningOrgs.has(org.id) 
+                          ? "Joining..." 
+                          : memberships.has(org.id) 
+                            ? (memberships.get(org.id) === 'approved' ? "Joined" : "Requested")
+                            : "Join"
+                        }
                       </Button>
                       {memberships.has(org.id) && (
                         <Button
