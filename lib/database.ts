@@ -260,16 +260,31 @@ export const databaseService = {
         throw new Error('User not authenticated')
       }
 
-      // Check if the current user has any approved memberships
-      const userMemberships = await this.getUserMemberships(user.id)
-      const hasApprovedMembership = userMemberships.some(m => m.status === 'approved')
-      
-      if (!hasApprovedMembership) {
-        // If user has no approved memberships, they can't view member lists
-        throw new Error('Access denied. You must be an approved member of at least one organization.')
+      // Get user's profile to check if they're an admin
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (profileError) {
+        throw new Error('Failed to get user profile')
       }
 
-      // Use direct query instead of RPC to get organization members
+      // Check access permissions
+      if (profile.role !== 'admin') {
+        // Regular users can only view members of organizations they are approved members of
+        const userMemberships = await this.getUserMemberships(user.id)
+        const isApprovedMember = userMemberships.some(m => 
+          m.organization_id === orgId && m.status === 'approved'
+        )
+        
+        if (!isApprovedMember) {
+          throw new Error('Access denied. You must be an approved member of this organization to view its members.')
+        }
+      }
+
+      // Use direct query to get organization members
       const { data, error } = await supabase
         .from('user_organizations')
         .select(`
