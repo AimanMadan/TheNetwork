@@ -106,13 +106,13 @@ export function OrganizationsToJoinTable({
                       <Button
                         variant="ghost"
                         size="sm"
-                        disabled={!memberships.has(org.id)}
+                        disabled={!memberships.has(org.id) || memberships.get(org.id) !== 'approved'}
                         className={`${
-                          memberships.has(org.id)
+                          memberships.has(org.id) && memberships.get(org.id) === 'approved'
                             ? "text-blue-400 hover:text-blue-300 hover:bg-transparent cursor-pointer"
                             : "text-gray-500 cursor-not-allowed"
                         } p-0 h-auto`}
-                        onClick={() => memberships.has(org.id) && handleViewMembers(org)}
+                        onClick={() => memberships.has(org.id) && memberships.get(org.id) === 'approved' && handleViewMembers(org)}
                       >
                         {memberCounts[org.id] || 0} members
                       </Button>
