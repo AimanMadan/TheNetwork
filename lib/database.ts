@@ -254,16 +254,36 @@ export const databaseService = {
    */
   async getOrganizationMembers(orgId: number): Promise<Profile[]> {
     try {
-      // Use RPC function to get organization members, respecting RLS
-      const { data, error } = await supabase.rpc("get_organization_members", {
-        org_id: orgId,
-      })
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) {
+        throw new Error('User not authenticated')
+      }
+
+      // Check if the current user has any approved memberships
+      const userMemberships = await this.getUserMemberships(user.id)
+      const hasApprovedMembership = userMemberships.some(m => m.status === 'approved')
+      
+      if (!hasApprovedMembership) {
+        // If user has no approved memberships, they can't view member lists
+        throw new Error('Access denied. You must be an approved member of at least one organization.')
+      }
+
+      // Use direct query instead of RPC to get organization members
+      const { data, error } = await supabase
+        .from('user_organizations')
+        .select(`
+          user_id,
+          profiles!inner(*)
+        `)
+        .eq('organization_id', orgId)
+        .eq('status', 'approved')
 
       if (error) {
         throw new Error(`Failed to get organization members: ${error.message}`)
       }
 
-      return data || []
+      return data.map(item => item.profiles).flat()
     } catch (error) {
       console.error("Error getting organization members:", error)
       throw error
