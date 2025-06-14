@@ -19,7 +19,7 @@ interface OrganizationsToJoinTableProps {
   organizations: Organization[]
   onJoinOrganization: (orgId: number) => Promise<void>
   onLeaveOrganization: (orgId: number) => Promise<void>
-  joinedOrganizationIds: number[]
+  memberships: Map<number, 'pending' | 'approved'>
   memberCounts: { [key: number]: number }
 }
 
@@ -27,7 +27,7 @@ export function OrganizationsToJoinTable({
   organizations, 
   onJoinOrganization, 
   onLeaveOrganization,
-  joinedOrganizationIds,
+  memberships,
   memberCounts
 }: OrganizationsToJoinTableProps) {
   const [joiningOrgs, setJoiningOrgs] = useState<Set<number>>(new Set())
@@ -106,13 +106,13 @@ export function OrganizationsToJoinTable({
                       <Button
                         variant="ghost"
                         size="sm"
-                        disabled={!joinedOrganizationIds.includes(org.id)}
+                        disabled={!memberships.has(org.id)}
                         className={`${
-                          joinedOrganizationIds.includes(org.id)
+                          memberships.has(org.id)
                             ? "text-blue-400 hover:text-blue-300 hover:bg-transparent cursor-pointer"
                             : "text-gray-500 cursor-not-allowed"
                         } p-0 h-auto`}
-                        onClick={() => joinedOrganizationIds.includes(org.id) && handleViewMembers(org)}
+                        onClick={() => memberships.has(org.id) && handleViewMembers(org)}
                       >
                         {memberCounts[org.id] || 0} members
                       </Button>
@@ -178,16 +178,16 @@ export function OrganizationsToJoinTable({
                     <Button
                       size="sm"
                       onClick={() => handleJoin(org.id)}
-                      disabled={joiningOrgs.has(org.id) || joinedOrganizationIds.includes(org.id)}
+                      disabled={joiningOrgs.has(org.id) || memberships.has(org.id)}
                       className={`${
-                        joinedOrganizationIds.includes(org.id)
+                        memberships.has(org.id)
                           ? "bg-gray-600 cursor-not-allowed"
                           : "bg-blue-600 hover:bg-blue-700"
                       } text-white`}
                     >
-                      {joiningOrgs.has(org.id) ? "Joining..." : joinedOrganizationIds.includes(org.id) ? "Joined" : "Join"}
+                      {joiningOrgs.has(org.id) ? "Joining..." : memberships.has(org.id) ? "Requested" : "Join"}
                     </Button>
-                    {joinedOrganizationIds.includes(org.id) && (
+                    {memberships.has(org.id) && (
                       <Button
                         size="sm"
                         onClick={() => handleLeave(org.id)}

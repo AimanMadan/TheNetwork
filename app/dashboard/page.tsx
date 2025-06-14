@@ -12,12 +12,19 @@ import type { Profile, Organization } from "@/lib/types"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
+// Add type definitions for membership status
+type MembershipStatus = 'pending' | 'approved'
+type Membership = {
+  organization_id: number
+  status: MembershipStatus
+}
+
 export default function DashboardPage() {
   const { user, signOut } = useAuth()
   const [members, setMembers] = useState<Profile[]>([])
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [availableOrganizations, setAvailableOrganizations] = useState<Organization[]>([])
-  const [joinedOrganizationIds, setJoinedOrganizationIds] = useState<number[]>([])
+  const [memberships, setMemberships] = useState<Map<number, MembershipStatus>>(new Map())
   const [loading, setLoading] = useState(true)
   const [memberCounts, setMemberCounts] = useState<{ [key: number]: number }>({})
   const router = useRouter()
@@ -62,13 +69,17 @@ export default function DashboardPage() {
       const counts = await databaseService.getOrganizationMemberCounts()
       setMemberCounts(counts)
 
-      // Fetch all organizations and user's joined organizations
-      const [allOrgs, joinedOrgs] = await Promise.all([
+      // Fetch all organizations and user's memberships
+      const [allOrgs, userMemberships] = await Promise.all([
         databaseService.getAllOrganizations(),
-        databaseService.getUserOrganizations(user!.id),
+        databaseService.getUserMemberships(user!.id),
       ])
 
-      setJoinedOrganizationIds(joinedOrgs)
+      // Convert memberships array to Map
+      const membershipsMap = new Map(
+        userMemberships.map((m: Membership) => [m.organization_id, m.status])
+      )
+      setMemberships(membershipsMap)
       console.log('Dashboard - User role:', user?.role)
 
       if (user?.role === "admin") {
@@ -99,41 +110,44 @@ export default function DashboardPage() {
     }
   }
 
-  const handleJoinOrganization = async (orgId: number) => {
+  const handleRequestToJoin = async (orgId: number) => {
     if (!user) return
 
     try {
-      await databaseService.joinOrganization(user.id, orgId)
-      toast.success("Successfully joined organization!")
+      await databaseService.requestToJoin(user.id, orgId)
+      toast.success("Request sent successfully!")
 
-      // Update joined organizations
-      const joinedOrgs = await databaseService.getUserOrganizations(user.id)
-      setJoinedOrganizationIds(joinedOrgs)
-
-      // Refresh data
-      await loadData()
+      // Update memberships map
+      setMemberships(prev => new Map(prev).set(orgId, 'pending'))
     } catch (error: any) {
-      toast.error(error.message || "Failed to join organization")
-      throw error // Re-throw to handle loading state in component
+      toast.error(error.message || "Failed to send join request")
+      throw error
     }
   }
 
-  const handleLeaveOrganization = async (orgId: number) => {
+  const handleCancelOrLeave = async (orgId: number) => {
     if (!user) return
 
     try {
-      await databaseService.leaveOrganization(user.id, orgId)
-      toast.success("Successfully left organization!")
+      const status = memberships.get(orgId)
+      
+      if (status === 'pending') {
+        await databaseService.cancelJoinRequest(user.id, orgId)
+        toast.success("Request cancelled")
+      } else if (status === 'approved') {
+        await databaseService.leaveOrganization(user.id, orgId)
+        toast.success("Successfully left organization!")
+      }
 
-      // Update joined organizations
-      const joinedOrgs = await databaseService.getUserOrganizations(user.id)
-      setJoinedOrganizationIds(joinedOrgs)
-
-      // Refresh data
-      await loadData()
+      // Update memberships map by removing the entry
+      setMemberships(prev => {
+        const newMap = new Map(prev)
+        newMap.delete(orgId)
+        return newMap
+      })
     } catch (error: any) {
-      toast.error(error.message || "Failed to leave organization")
-      throw error // Re-throw to handle loading state in component
+      toast.error(error.message || "Failed to process request")
+      throw error
     }
   }
 
@@ -194,9 +208,9 @@ export default function DashboardPage() {
                 organizations={organizations}
                 onAddOrganization={handleAddOrganization}
                 onDeleteOrganization={handleDeleteOrganization}
-                onJoinOrganization={handleJoinOrganization}
-                onLeaveOrganization={handleLeaveOrganization}
-                joinedOrganizationIds={joinedOrganizationIds}
+                onJoinOrganization={handleRequestToJoin}
+                onLeaveOrganization={handleCancelOrLeave}
+                memberships={memberships}
                 memberCounts={memberCounts}
               />
             </div>
@@ -207,9 +221,9 @@ export default function DashboardPage() {
               </h1>
               <OrganizationsToJoinTable
                 organizations={availableOrganizations}
-                onJoinOrganization={handleJoinOrganization}
-                onLeaveOrganization={handleLeaveOrganization}
-                joinedOrganizationIds={joinedOrganizationIds}
+                onJoinOrganization={handleRequestToJoin}
+                onLeaveOrganization={handleCancelOrLeave}
+                memberships={memberships}
                 memberCounts={memberCounts}
               />
             </div>

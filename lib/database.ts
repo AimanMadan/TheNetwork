@@ -195,16 +195,16 @@ export const databaseService = {
 
   /**
    * Updates a user's role in the database.
-   * Only accessible by users with admin role (enforced by RLS).
+   * Only accessible by users with admin role (enforced by RPC function).
    * @param userId - The ID of the user to update
    * @param role - The new role to assign ("user" or "admin")
    * @throws Error if database update fails or user lacks permission
    */
   async updateUserRole(userId: string, role: "user" | "admin"): Promise<void> {
-    const { error } = await supabase
-      .from("profiles")
-      .update({ role })
-      .eq("id", userId)
+    const { error } = await supabase.rpc("update_user_role_admin", {
+      target_user_id: userId,
+      new_role: role
+    })
 
     if (error) throw error
   },
@@ -273,5 +273,58 @@ export const databaseService = {
       )
     }
     return data || []
+  },
+
+  /**
+   * Gets a user's memberships with their statuses.
+   * @param userId - The ID of the user
+   * @returns Promise<Membership[]> Array of memberships with their statuses
+   * @throws Error if database query fails
+   */
+  async getUserMemberships(userId: string): Promise<Membership[]> {
+    const { data, error } = await supabase
+      .from("user_organizations")
+      .select("organization_id, status")
+      .eq("user_id", userId)
+
+    if (error) throw error
+    return data.map(item => ({
+      user_id: userId,
+      organization_id: item.organization_id,
+      status: item.status
+    })) as Membership[]
+  },
+
+  /**
+   * Requests to join an organization.
+   * @param userId - The ID of the user requesting to join
+   * @param organizationId - The ID of the organization to join
+   * @throws Error if database insert fails or user lacks permission
+   */
+  async requestToJoin(userId: string, organizationId: number): Promise<void> {
+    const { error } = await supabase.from("user_organizations").insert({
+      user_id: userId,
+      organization_id: organizationId,
+      status: 'pending'
+    })
+
+    if (error) throw error
+  },
+
+  /**
+   * Cancels a pending join request.
+   * @param userId - The ID of the user cancelling the request
+   * @param organizationId - The ID of the organization
+   * @throws Error if database delete fails or user lacks permission
+   */
+  async cancelJoinRequest(userId: string, organizationId: number): Promise<void> {
+    const { error } = await supabase
+      .from("user_organizations")
+      .delete()
+      .eq("user_id", userId)
+      .eq("organization_id", organizationId)
+      .eq("status", 'pending')
+
+    if (error) throw error
   }
 }
