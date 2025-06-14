@@ -27,6 +27,7 @@ export default function DashboardPage() {
   const [memberships, setMemberships] = useState<Map<number, MembershipStatus>>(new Map())
   const [loading, setLoading] = useState(true)
   const [memberCounts, setMemberCounts] = useState<{ [key: number]: number }>({})
+  const [pendingCounts, setPendingCounts] = useState<{ [key: number]: number }>({})
   const router = useRouter()
 
   useEffect(() => {
@@ -65,9 +66,13 @@ export default function DashboardPage() {
       setLoading(true)
       console.log('Dashboard - Loading data for user:', user?.email)
 
-      // Load member counts for all organizations
-      const counts = await databaseService.getOrganizationMemberCounts()
+      // Load member counts and pending counts for all organizations
+      const [counts, pendingRequestCounts] = await Promise.all([
+        databaseService.getOrganizationMemberCounts(),
+        databaseService.getOrganizationPendingCounts()
+      ])
       setMemberCounts(counts)
+      setPendingCounts(pendingRequestCounts)
 
       // Fetch all organizations and user's memberships
       const [allOrgs, userMemberships] = await Promise.all([
@@ -217,6 +222,7 @@ export default function DashboardPage() {
                 onLeaveOrganization={handleCancelOrLeave}
                 memberships={memberships}
                 memberCounts={memberCounts}
+                pendingCounts={pendingCounts}
               />
             </div>
           ) : (

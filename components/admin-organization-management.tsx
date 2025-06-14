@@ -37,6 +37,7 @@ interface AdminOrganizationManagementProps {
   onLeaveOrganization: (orgId: number) => Promise<void>
   memberships: Map<number, 'pending' | 'approved'>
   memberCounts: { [key: number]: number }
+  pendingCounts: { [key: number]: number }
 }
 
 export function AdminOrganizationManagement({
@@ -46,7 +47,8 @@ export function AdminOrganizationManagement({
   onJoinOrganization,
   onLeaveOrganization,
   memberships,
-  memberCounts
+  memberCounts,
+  pendingCounts
 }: AdminOrganizationManagementProps) {
   const [newOrgName, setNewOrgName] = useState("")
   const [isAdding, setIsAdding] = useState(false)
@@ -188,7 +190,7 @@ export function AdminOrganizationManagement({
               <TableRow className="border-gray-700">
                 <TableHead className="text-gray-300">Organization Name</TableHead>
                 <TableHead className="text-gray-300">Members</TableHead>
-                <TableHead className="text-gray-300">Status</TableHead>
+                <TableHead className="text-gray-300">Pending Requests</TableHead>
                 <TableHead className="text-gray-300">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -265,7 +267,11 @@ export function AdminOrganizationManagement({
                     </Dialog>
                   </TableCell>
                   <TableCell className="text-gray-200">
-                    {/* Remove status display for admins */}
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      (pendingCounts[org.id] || 0) > 0 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-500/20 text-gray-400'
+                    }`}>
+                      {pendingCounts[org.id] || 0} pending
+                    </span>
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">

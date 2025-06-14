@@ -360,5 +360,40 @@ export const databaseService = {
       .eq("status", 'pending')
 
     if (error) throw error
+  },
+
+  /**
+   * Gets the number of pending requests for each organization.
+   * @returns Promise<{ [key: number]: number }> Object mapping organization IDs to their pending request counts
+   * @throws Error if database query fails
+   */
+  async getOrganizationPendingCounts(): Promise<{ [key: number]: number }> {
+    try {
+      // Get all organizations first
+      const allOrgs = await this.getAllOrganizations()
+      const orgIds = allOrgs.map(org => org.id)
+
+      // Use RPC function to get memberships, respecting RLS
+      const { data, error } = await supabase.rpc("get_memberships_by_org_ids", {
+        org_ids: orgIds
+      })
+
+      if (error) {
+        throw new Error(`Failed to get pending counts: ${error.message}`)
+      }
+
+      // Count only pending requests for each organization
+      const counts: { [key: number]: number } = {}
+      data.forEach((item: any) => {
+        if (item.status === 'pending') {
+          const orgId = item.organization_id
+          counts[orgId] = (counts[orgId] || 0) + 1
+        }
+      })
+      return counts
+    } catch (error) {
+      console.error('Error fetching pending counts:', error)
+      throw error
+    }
   }
 }
