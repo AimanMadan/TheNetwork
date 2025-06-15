@@ -1,4 +1,6 @@
 import { databaseService } from "@/lib/database";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Linkedin, Mail } from "lucide-react";
@@ -19,6 +21,12 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   return (
     <div className="container mx-auto py-10">
+      <div className="mb-4">
+        <Link href="/users" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+            <ArrowLeft className="w-5 h-5" />
+            <span>Back to Directory</span>
+        </Link>
+      </div>
       <Card className="max-w-2xl mx-auto bg-gray-800 border-gray-700 text-white">
         <CardHeader>
           <div className="flex justify-between items-center">
