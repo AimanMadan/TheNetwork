@@ -11,6 +11,9 @@ import { databaseService } from "@/lib/database"
 import type { Profile, Organization } from "@/lib/types"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Users } from "lucide-react"
 
 // Add type definitions for membership status
 type MembershipStatus = 'pending' | 'approved'
@@ -260,10 +263,23 @@ export default function DashboardPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gray-900">
-        <DashboardHeader firstName={user?.first_name || "User"} onSignOut={handleSignOut} />
-
-        <main className="p-6">
+      <div className="flex flex-col min-h-screen bg-gray-900 text-white">
+        <DashboardHeader
+          firstName={user?.first_name || "User"}
+          onSignOut={handleSignOut}
+        />
+        <main className="flex-1 p-6 space-y-6">
+          <Card className="bg-gray-800 border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold">Community</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Link href="/users" className="flex items-center space-x-2 text-blue-400 hover:underline">
+                <Users className="w-5 h-5" />
+                <span>Explore the Community</span>
+              </Link>
+            </CardContent>
+          </Card>
           {user?.role === "admin" ? (
             <div className="space-y-6">
               <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
