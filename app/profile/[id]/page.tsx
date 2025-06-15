@@ -1,7 +1,7 @@
 import { databaseService } from "@/lib/database";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ExternalLink } from "lucide-react";
+import { Linkedin } from "lucide-react";
 
 interface ProfilePageProps {
   params: {
@@ -50,7 +50,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors"
               >
-                <ExternalLink className="h-5 w-5" />
+                <Linkedin className="h-5 w-5" />
                 <span>LinkedIn Profile</span>
               </a>
             </div>
