@@ -134,9 +134,10 @@ export default function LoginPage() {
             </Link>
           </p>
 
-          <div className="mt-4 p-4 bg-gray-700/50 rounded-lg">
-            <p className="text-sm text-gray-300">
-              Note: If you sign in with email or Google, you will need to connect your LinkedIn account during onboarding to complete your profile.
+          <div className="mt-4 p-4 bg-blue-900/30 border border-blue-500/30 rounded-lg">
+            <p className="text-sm text-blue-200 font-medium mb-2">Important Notice:</p>
+            <p className="text-sm text-blue-100">
+              LinkedIn connection is required to use this platform. If you sign in with email or Google, you will be prompted to connect your LinkedIn account during onboarding. Your LinkedIn profile picture will be used as your profile picture.
             </p>
           </div>
         </form>

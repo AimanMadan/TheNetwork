@@ -81,12 +81,9 @@ export const authService = {
     const firstName = user.user_metadata?.given_name || user.user_metadata?.first_name || nameParts[0] || null
     const lastName = user.user_metadata?.family_name || user.user_metadata?.last_name || nameParts.slice(1).join(' ') || null
 
-    // Get avatar URL from various sources
-    const avatarUrl = user.user_metadata?.avatar_url || 
-                     user.user_metadata?.picture || 
-                     user.user_metadata?.linkedin_picture || 
-                     user.user_metadata?.picture_url || 
-                     null
+    // Only set avatar URL if it's from LinkedIn
+    const avatarUrl = user.user_metadata?.linkedin_picture || 
+                     (user.user_metadata?.picture_url?.includes('linkedin') ? user.user_metadata.picture_url : null)
 
     const profileData = {
       id: user.id,
