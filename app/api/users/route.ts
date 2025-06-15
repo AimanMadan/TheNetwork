@@ -65,10 +65,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json([]);
     }
 
-    const joinType = applyOrgFilter ? "inner" : "left"
     let queryBuilder = supabase
       .from("profiles")
-      .select(`*, user_organizations!${joinType}(organization_id)`)
+      .select("*, user_organizations!inner(organization_id, status)")
 
     if (query) {
       queryBuilder = queryBuilder.or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%`)
@@ -79,6 +78,9 @@ export async function GET(req: NextRequest) {
     if (jobTitles.length > 0) {
       queryBuilder = queryBuilder.in("job_title", jobTitles)
     }
+
+    queryBuilder = queryBuilder.eq("user_organizations.status", "approved");
+    
     if (applyOrgFilter) {
       queryBuilder = queryBuilder.in("user_organizations.organization_id", effectiveOrgIds)
     }
