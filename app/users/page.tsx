@@ -4,6 +4,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { Card } from "@/components/ui/card"
+import { toast } from "sonner"
 
 interface User {
   id: number
@@ -19,11 +20,26 @@ export default function UserDirectory() {
   const [users, setUsers] = useState<User[]>([])
   useEffect(() => {
     const fetchUsers = async () => {
-      const response = await fetch(
-        `/api/users?query=${searchQuery}&role=${roleFilter}`
-      )
-      const data = await response.json()
-      setUsers(data)
+      try {
+        const response = await fetch(
+          `/api/users?query=${searchQuery}&role=${roleFilter}`
+        )
+        const data = await response.json()
+        if (response.ok) {
+          if (Array.isArray(data)) {
+            setUsers(data)
+          } else {
+            setUsers([])
+            toast.error("Received unexpected data from server.")
+          }
+        } else {
+          setUsers([])
+          toast.error(data.error || "Failed to fetch users.")
+        }
+      } catch (error) {
+        setUsers([])
+        toast.error("An unexpected error occurred.")
+      }
     }
     fetchUsers()
   }, [searchQuery, roleFilter])
