@@ -96,13 +96,13 @@ export function AdminUserManagement({
           <div className="text-center text-gray-400 py-4">Loading users...</div>
         ) : (
           <div ref={tableContainerRef} className="h-[600px] overflow-auto relative">
-            <Table style={{ tableLayout: 'fixed' }}>
+            <Table className="w-full table-fixed">
               <TableHeader className="sticky top-0 z-10 bg-gray-800">
-                <TableRow className="border-gray-700">
-                  <TableHead className="text-gray-300 w-[30%]">Name</TableHead>
-                  <TableHead className="text-gray-300 w-[30%]">Job Title</TableHead>
-                  <TableHead className="text-gray-300 w-[20%]">Role</TableHead>
-                  <TableHead className="text-gray-300 w-[20%]">Actions</TableHead>
+                <TableRow className="border-gray-700 flex">
+                  <TableHead className="w-[30%] px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Name</TableHead>
+                  <TableHead className="w-[30%] px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Job Title</TableHead>
+                  <TableHead className="w-[20%] px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Role</TableHead>
+                  <TableHead className="w-[20%] px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody
@@ -125,18 +125,18 @@ export function AdminUserManagement({
                         height: `${virtualItem.size}px`,
                         transform: `translateY(${virtualItem.start}px)`,
                       }}
-                      className="border-b border-gray-700"
+                      className="border-b border-gray-700 flex items-center"
                     >
                       <TableCell
-                        className="text-gray-200 cursor-pointer hover:underline truncate"
+                        className="w-[30%] px-4 py-2 text-gray-200 cursor-pointer hover:underline"
                         onClick={() => router.push(`/profile/${user.id}`)}
                       >
                         {user.first_name} {user.last_name}
                       </TableCell>
-                      <TableCell className="text-gray-200 truncate">
+                      <TableCell className="w-[30%] px-4 py-2 text-gray-200">
                         {user.job_title || "N/A"}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="w-[20%] px-4 py-2">
                         <Select
                           value={user.role}
                           onValueChange={(newRole: "user" | "admin") =>
@@ -153,7 +153,7 @@ export function AdminUserManagement({
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="w-[20%] px-4 py-2">
                         <div className="flex items-center space-x-4">
                           {user.linkedin_account && (
                             <a
