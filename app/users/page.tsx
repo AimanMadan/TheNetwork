@@ -1,9 +1,63 @@
+"use client"
+import { useState } from "react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { Card } from "@/components/ui/card"
 
 export default function UserDirectory() {
+  const [searchQuery, setSearchQuery] = useState("")
+  const [roleFilter, setRoleFilter] = useState("all")
+  const users = [
+    {
+      id: 1,
+      name: "John Doe",
+      role: "Software Engineer",
+      avatar: "/placeholder-user.jpg",
+      fallback: "JD",
+    },
+    {
+      id: 2,
+      name: "Jane Smith",
+      role: "UX Designer",
+      avatar: "/placeholder-user.jpg",
+      fallback: "JS",
+    },
+    {
+      id: 3,
+      name: "Michael Johnson",
+      role: "Project Manager",
+      avatar: "/placeholder-user.jpg",
+      fallback: "MJ",
+    },
+    {
+      id: 4,
+      name: "Emily Carter",
+      role: "Data Scientist",
+      avatar: "/placeholder-user.jpg",
+      fallback: "EC",
+    },
+    {
+      id: 5,
+      name: "David Brown",
+      role: "Marketing Specialist",
+      avatar: "/placeholder-user.jpg",
+      fallback: "DB",
+    },
+    {
+      id: 6,
+      name: "Olivia Lee",
+      role: "Content Strategist",
+      avatar: "/placeholder-user.jpg",
+      fallback: "OL",
+    },
+  ]
+  const filteredUsers = users.filter((user) => {
+    const query = searchQuery.toLowerCase()
+    const nameMatch = user.name.toLowerCase().includes(query)
+    const roleMatch = roleFilter === "all" || user.role.toLowerCase() === roleFilter
+    return nameMatch && roleMatch
+  })
   return (
     <div className="flex flex-col h-screen">
       <header className="bg-gray-900 text-white py-4 px-6">
@@ -25,8 +79,13 @@ export default function UserDirectory() {
           <div className="mb-6">
             <h2 className="text-2xl font-bold mb-4">Community</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input placeholder="Search by name or email" className="col-span-1 md:col-span-2" />
-              <Select>
+              <Input
+                placeholder="Search by name or email"
+                className="col-span-1 md:col-span-2"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="All Roles" />
                 </SelectTrigger>
@@ -39,54 +98,16 @@ export default function UserDirectory() {
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            <Card className="p-4 flex flex-col items-center">
-              <Avatar className="w-20 h-20 mb-4">
-                <AvatarImage src="/placeholder-user.jpg" />
-                <AvatarFallback>JD</AvatarFallback>
-              </Avatar>
-              <h3 className="text-lg font-bold">John Doe</h3>
-              <p className="text-gray-500 dark:text-gray-400">Software Engineer</p>
-            </Card>
-            <Card className="p-4 flex flex-col items-center">
-              <Avatar className="w-20 h-20 mb-4">
-                <AvatarImage src="/placeholder-user.jpg" />
-                <AvatarFallback>JS</AvatarFallback>
-              </Avatar>
-              <h3 className="text-lg font-bold">Jane Smith</h3>
-              <p className="text-gray-500 dark:text-gray-400">UX Designer</p>
-            </Card>
-            <Card className="p-4 flex flex-col items-center">
-              <Avatar className="w-20 h-20 mb-4">
-                <AvatarImage src="/placeholder-user.jpg" />
-                <AvatarFallback>MJ</AvatarFallback>
-              </Avatar>
-              <h3 className="text-lg font-bold">Michael Johnson</h3>
-              <p className="text-gray-500 dark:text-gray-400">Project Manager</p>
-            </Card>
-            <Card className="p-4 flex flex-col items-center">
-              <Avatar className="w-20 h-20 mb-4">
-                <AvatarImage src="/placeholder-user.jpg" />
-                <AvatarFallback>EC</AvatarFallback>
-              </Avatar>
-              <h3 className="text-lg font-bold">Emily Carter</h3>
-              <p className="text-gray-500 dark:text-gray-400">Data Scientist</p>
-            </Card>
-            <Card className="p-4 flex flex-col items-center">
-              <Avatar className="w-20 h-20 mb-4">
-                <AvatarImage src="/placeholder-user.jpg" />
-                <AvatarFallback>DB</AvatarFallback>
-              </Avatar>
-              <h3 className="text-lg font-bold">David Brown</h3>
-              <p className="text-gray-500 dark:text-gray-400">Marketing Specialist</p>
-            </Card>
-            <Card className="p-4 flex flex-col items-center">
-              <Avatar className="w-20 h-20 mb-4">
-                <AvatarImage src="/placeholder-user.jpg" />
-                <AvatarFallback>OL</AvatarFallback>
-              </Avatar>
-              <h3 className="text-lg font-bold">Olivia Lee</h3>
-              <p className="text-gray-500 dark:text-gray-400">Content Strategist</p>
-            </Card>
+            {filteredUsers.map((user) => (
+              <Card key={user.id} className="p-4 flex flex-col items-center">
+                <Avatar className="w-20 h-20 mb-4">
+                  <AvatarImage src={user.avatar} />
+                  <AvatarFallback>{user.fallback}</AvatarFallback>
+                </Avatar>
+                <h3 className="text-lg font-bold">{user.name}</h3>
+                <p className="text-gray-500 dark:text-gray-400">{user.role}</p>
+              </Card>
+            ))}
           </div>
         </div>
       </div>
