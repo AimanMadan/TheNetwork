@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { OrganizationsToJoinTable } from "@/components/organizations-to-join-table"
 import { AdminOrganizationManagement } from "@/components/admin-organization-management"
 import { AdminUserManagement } from "@/components/admin-user-management"
 import { AuthGuard } from "@/components/auth-guard"
 import { useAuth } from "@/hooks/use-auth"
+import { useIsMounted } from "@/hooks/use-is-mounted"
 import { databaseService } from "@/lib/database"
 import type { Profile, Organization } from "@/lib/types"
 import { toast } from "sonner"
@@ -32,37 +33,35 @@ export default function DashboardPage() {
   const [memberCounts, setMemberCounts] = useState<{ [key: number]: number }>({})
   const [pendingCounts, setPendingCounts] = useState<{ [key: number]: number }>({})
   const router = useRouter()
+  const isMounted = useIsMounted()
+  const processingUser = useRef<string | null>(null)
 
   useEffect(() => {
-    console.log('Dashboard - User changed:', user)
-    if (user) {
-      console.log('Dashboard - User profile:', {
-        id: user.id,
-        email: user.email,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        job_title: user.job_title,
-        linkedin_account: user.linkedin_account,
-        role: user.role
-      })
+    if (user && isMounted && processingUser.current !== user.id) {
+      processingUser.current = user.id
+      console.log("Dashboard - Processing user:", user.id)
 
       // Double-check profile completion before loading dashboard data
       const isComplete = !!(
-        user.first_name && user.first_name.trim() !== "" &&
-        user.last_name && user.last_name.trim() !== "" &&
-        user.job_title && user.job_title.trim() !== "" &&
-        user.linkedin_account && user.linkedin_account.trim() !== ""
+        user.first_name &&
+        user.first_name.trim() !== "" &&
+        user.last_name &&
+        user.last_name.trim() !== "" &&
+        user.job_title &&
+        user.job_title.trim() !== "" &&
+        user.linkedin_account &&
+        user.linkedin_account.trim() !== ""
       )
 
       if (!isComplete) {
-        console.log('Dashboard - Profile incomplete, redirecting to onboarding')
-        router.push('/onboarding')
+        console.log("Dashboard - Profile incomplete, redirecting to onboarding")
+        router.push("/onboarding")
         return
       }
 
       loadData()
     }
-  }, [user, router])
+  }, [user, isMounted, router])
 
   const loadData = async () => {
     try {

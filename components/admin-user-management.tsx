@@ -21,31 +21,40 @@ const USERS_PER_PAGE = 10
 
 export function AdminUserManagement({ onUpdateUserRole }: AdminUserManagementProps) {
   const router = useRouter()
-  const [users, setUsers] = useState<Profile[]>([])
+  const [allUsers, setAllUsers] = useState<Profile[]>([])
   const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
   const [loading, setLoading] = useState(true)
   const [updatingUsers, setUpdatingUsers] = useState<Set<string>>(new Set())
 
   const fetchUsers = useCallback(async (pageToFetch: number) => {
+    if (loading) return
     setLoading(true)
     try {
       const { data, hasMore: newHasMore } = await databaseService.getPaginatedProfiles(
         pageToFetch,
         USERS_PER_PAGE
       )
-      setUsers(data)
+      
+      setAllUsers(prevUsers => {
+        const existingUserIds = new Set(prevUsers.map(u => u.id))
+        const newUsers = data.filter(u => !existingUserIds.has(u.id))
+        return [...prevUsers, ...newUsers]
+      })
+
       setHasMore(newHasMore)
     } catch (error) {
       toast.error("Failed to fetch users.")
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [loading])
 
   useEffect(() => {
-    fetchUsers(page)
-  }, [page, fetchUsers])
+    if (hasMore && !loading) {
+      fetchUsers(page)
+    }
+  }, [page, hasMore, loading, fetchUsers])
 
   const handleRoleChange = async (userId: string, newRole: "user" | "admin") => {
     setUpdatingUsers((prev) => new Set(prev).add(userId))
@@ -85,7 +94,7 @@ export function AdminUserManagement({ onUpdateUserRole }: AdminUserManagementPro
                 </TableCell>
               </TableRow>
             ) : (
-              users.map((user) => (
+              allUsers.map((user) => (
                 <TableRow key={user.id} className="border-gray-700">
                   <TableCell 
                     className="text-gray-200 cursor-pointer hover:underline"
@@ -156,7 +165,7 @@ export function AdminUserManagement({ onUpdateUserRole }: AdminUserManagementPro
             disabled={!hasMore || loading}
             className="border-gray-600 text-gray-300 hover:bg-gray-700"
           >
-            Next
+            View More
           </Button>
         </div>
       </CardContent>
