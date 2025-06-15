@@ -137,7 +137,24 @@ export const authService = {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          scope: 'openid profile email'
+        }
+      }
+    })
+    if (error) throw error
+    return data
+  },
+
+  async signInWithLinkedIn() {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'linkedin_oidc',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          scope: 'openid profile email'
+        }
       }
     })
     if (error) throw error

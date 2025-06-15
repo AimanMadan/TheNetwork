@@ -17,6 +17,7 @@ interface AuthContextType {
   signOut: () => Promise<void>
   refreshUser: () => Promise<void>
   signInWithGoogle: () => Promise<void>
+  signInWithLinkedIn: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -80,6 +81,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await authService.signInWithGoogle()
   }
 
+  const signInWithLinkedIn = async () => {
+    await authService.signInWithLinkedIn()
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -91,6 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signOut,
         refreshUser,
         signInWithGoogle,
+        signInWithLinkedIn,
       }}
     >
       {children}
