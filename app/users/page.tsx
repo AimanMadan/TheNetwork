@@ -1,5 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -133,6 +135,10 @@ export default function UserDirectory() {
     <div className="flex flex-col h-screen">
       <header className="bg-gray-900 text-white py-4 px-6">
         <div className="container mx-auto flex items-center justify-between">
+          <Link href="/dashboard" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+            <ArrowLeft className="w-5 h-5" />
+            <span>Back to Dashboard</span>
+          </Link>
           <div className="flex items-center gap-4">
             <Avatar>
               <AvatarImage src={user?.avatar_url || "/placeholder-user.jpg"} />

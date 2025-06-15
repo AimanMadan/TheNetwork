@@ -96,13 +96,13 @@ export function AdminUserManagement({
           <div className="text-center text-gray-400 py-4">Loading users...</div>
         ) : (
           <div ref={tableContainerRef} className="h-[600px] overflow-auto relative">
-            <Table>
+            <Table style={{ tableLayout: 'fixed' }}>
               <TableHeader className="sticky top-0 z-10 bg-gray-800">
                 <TableRow className="border-gray-700">
-                  <TableHead className="text-gray-300">Name</TableHead>
-                  <TableHead className="text-gray-300">Job Title</TableHead>
-                  <TableHead className="text-gray-300">Role</TableHead>
-                  <TableHead className="text-gray-300">Actions</TableHead>
+                  <TableHead className="text-gray-300 w-[30%]">Name</TableHead>
+                  <TableHead className="text-gray-300 w-[30%]">Job Title</TableHead>
+                  <TableHead className="text-gray-300 w-[20%]">Role</TableHead>
+                  <TableHead className="text-gray-300 w-[20%]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody
@@ -128,12 +128,12 @@ export function AdminUserManagement({
                       className="border-b border-gray-700"
                     >
                       <TableCell
-                        className="text-gray-200 cursor-pointer hover:underline"
+                        className="text-gray-200 cursor-pointer hover:underline truncate"
                         onClick={() => router.push(`/profile/${user.id}`)}
                       >
                         {user.first_name} {user.last_name}
                       </TableCell>
-                      <TableCell className="text-gray-200">
+                      <TableCell className="text-gray-200 truncate">
                         {user.job_title || "N/A"}
                       </TableCell>
                       <TableCell>
