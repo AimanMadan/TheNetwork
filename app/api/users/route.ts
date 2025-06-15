@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    let queryBuilder = supabase.from("profiles").select("*, organizations:organization_members!inner(organization_id)")
+    let queryBuilder = supabase.from("profiles").select("*, user_organizations!inner(organization_id)")
 
     if (query) {
       queryBuilder = queryBuilder.or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%`)
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
 
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("role, organizations:organization_members!inner(organization_id)")
+      .select("role, user_organizations!inner(organization_id)")
       .eq("id", user.id)
       .single()
 
@@ -50,8 +50,8 @@ export async function GET(req: NextRequest) {
     }
 
     if (profile.role !== "admin") {
-      const userOrgIds = profile.organizations.map((org) => org.organization_id)
-      queryBuilder = queryBuilder.filter("organizations.organization_id", "in", `(${userOrgIds.join(",")})`)
+      const userOrgIds = profile.user_organizations.map((org) => org.organization_id)
+      queryBuilder = queryBuilder.filter("user_organizations.organization_id", "in", `(${userOrgIds.join(",")})`)
     }
 
     const { data, error } = await queryBuilder
