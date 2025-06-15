@@ -1,63 +1,32 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { Card } from "@/components/ui/card"
 
+interface User {
+  id: number
+  name: string
+  role: string
+  avatar: string
+  fallback: string
+}
+
 export default function UserDirectory() {
   const [searchQuery, setSearchQuery] = useState("")
   const [roleFilter, setRoleFilter] = useState("all")
-  const users = [
-    {
-      id: 1,
-      name: "John Doe",
-      role: "Software Engineer",
-      avatar: "/placeholder-user.jpg",
-      fallback: "JD",
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      role: "UX Designer",
-      avatar: "/placeholder-user.jpg",
-      fallback: "JS",
-    },
-    {
-      id: 3,
-      name: "Michael Johnson",
-      role: "Project Manager",
-      avatar: "/placeholder-user.jpg",
-      fallback: "MJ",
-    },
-    {
-      id: 4,
-      name: "Emily Carter",
-      role: "Data Scientist",
-      avatar: "/placeholder-user.jpg",
-      fallback: "EC",
-    },
-    {
-      id: 5,
-      name: "David Brown",
-      role: "Marketing Specialist",
-      avatar: "/placeholder-user.jpg",
-      fallback: "DB",
-    },
-    {
-      id: 6,
-      name: "Olivia Lee",
-      role: "Content Strategist",
-      avatar: "/placeholder-user.jpg",
-      fallback: "OL",
-    },
-  ]
-  const filteredUsers = users.filter((user) => {
-    const query = searchQuery.toLowerCase()
-    const nameMatch = user.name.toLowerCase().includes(query)
-    const roleMatch = roleFilter === "all" || user.role.toLowerCase() === roleFilter
-    return nameMatch && roleMatch
-  })
+  const [users, setUsers] = useState<User[]>([])
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const response = await fetch(
+        `/api/users?query=${searchQuery}&role=${roleFilter}`
+      )
+      const data = await response.json()
+      setUsers(data)
+    }
+    fetchUsers()
+  }, [searchQuery, roleFilter])
   return (
     <div className="flex flex-col h-screen">
       <header className="bg-gray-900 text-white py-4 px-6">
@@ -98,7 +67,7 @@ export default function UserDirectory() {
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {filteredUsers.map((user) => (
+            {users.map((user) => (
               <Card key={user.id} className="p-4 flex flex-col items-center">
                 <Avatar className="w-20 h-20 mb-4">
                   <AvatarImage src={user.avatar} />
