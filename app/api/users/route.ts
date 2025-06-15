@@ -7,7 +7,10 @@ export async function GET(req: NextRequest) {
   const query = searchParams.get("query") || ""
   const roles = searchParams.getAll("roles")
   const jobTitles = searchParams.getAll("jobTitles")
-  const organizationIds = searchParams.getAll("organizationIds")
+  const organizationIds = searchParams
+    .getAll("organizationIds")
+    .map((id) => parseInt(id, 10))
+    .filter((id) => !isNaN(id))
 
   try {
     const supabase_session = createClient(
@@ -26,25 +29,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    let queryBuilder = supabase.from("profiles").select("*, user_organizations!left(organization_id)")
-
-    if (query) {
-      queryBuilder = queryBuilder.or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%`)
-    }
-
-    if (roles.length > 0) {
-      queryBuilder = queryBuilder.in("role", roles)
-    }
-
-    if (jobTitles.length > 0) {
-      queryBuilder = queryBuilder.in("job_title", jobTitles)
-    }
-
-    if (organizationIds.length > 0) {
-      queryBuilder = queryBuilder.filter("user_organizations.organization_id", "in", `(${organizationIds.join(",")})`)
-    }
-
-    const { data: profile, error: profileError } = await supabase
+    const { data: currentUserProfile, error: profileError } = await supabase
       .from("profiles")
       .select("role, user_organizations!left(organization_id)")
       .eq("id", user.id)
@@ -54,12 +39,48 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Failed to fetch user profile." }, { status: 500 })
     }
 
-    if (profile.role !== "admin") {
-      const userOrgIds = profile.user_organizations.map((org) => org.organization_id)
+    let effectiveOrgIds: number[] = []
+    let applyOrgFilter = false
+
+    if (currentUserProfile.role === "admin") {
+      if (organizationIds.length > 0) {
+        effectiveOrgIds = organizationIds
+        applyOrgFilter = true
+      }
+    } else {
+      const userOrgIds = currentUserProfile.user_organizations.map((org) => org.organization_id)
       if (userOrgIds.length === 0) {
         return NextResponse.json([])
       }
-      queryBuilder = queryBuilder.filter("user_organizations.organization_id", "in", `(${userOrgIds.join(",")})`)
+
+      if (organizationIds.length > 0) {
+        effectiveOrgIds = organizationIds.filter((id) => userOrgIds.includes(id))
+      } else {
+        effectiveOrgIds = userOrgIds
+      }
+      applyOrgFilter = true
+    }
+    
+    if (applyOrgFilter && effectiveOrgIds.length === 0) {
+      return NextResponse.json([]);
+    }
+
+    const joinType = applyOrgFilter ? "inner" : "left"
+    let queryBuilder = supabase
+      .from("profiles")
+      .select(`*, user_organizations!${joinType}(organization_id)`)
+
+    if (query) {
+      queryBuilder = queryBuilder.or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%`)
+    }
+    if (roles.length > 0) {
+      queryBuilder = queryBuilder.in("role", roles)
+    }
+    if (jobTitles.length > 0) {
+      queryBuilder = queryBuilder.in("job_title", jobTitles)
+    }
+    if (applyOrgFilter) {
+      queryBuilder = queryBuilder.in("user_organizations.organization_id", effectiveOrgIds)
     }
 
     const { data, error } = await queryBuilder

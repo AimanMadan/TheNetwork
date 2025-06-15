@@ -33,33 +33,49 @@ export default function UserDirectory() {
   const [organizations, setOrganizations] = useState<Organization[]>([])
 
   useEffect(() => {
-    const fetchFilters = async () => {
+    const fetchOrgs = async () => {
       try {
-        const [filtersResponse, orgsResponse] = await Promise.all([
-          fetch("/api/users/filters"),
-          fetch("/api/organizations"),
-        ])
-        const filtersData = await filtersResponse.json()
-        const orgsData = await orgsResponse.json()
-
-        if (filtersResponse.ok) {
-          setRoles(filtersData.roles)
-          setJobTitles(filtersData.jobTitles)
+        const response = await fetch("/api/organizations")
+        const data = await response.json()
+        if (response.ok) {
+          setOrganizations(data)
         } else {
-          toast.error(filtersData.error || "Failed to fetch filters.")
+          toast.error(data.error || "Failed to fetch organizations.")
         }
+      } catch (error) {
+        toast.error("An unexpected error occurred while fetching organizations.")
+      }
+    }
+    fetchOrgs()
+  }, [])
 
-        if (orgsResponse.ok) {
-          setOrganizations(orgsData)
+  useEffect(() => {
+    if (!session) return
+    const fetchScopedFilters = async () => {
+      try {
+        const params = new URLSearchParams()
+        selectedOrganizations.forEach((orgId) => params.append("organizationIds", orgId.toString()))
+        const response = await fetch(`/api/users/filters?${params.toString()}`, {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        })
+        const data = await response.json()
+        if (response.ok) {
+          setRoles(data.roles)
+          setJobTitles(data.jobTitles)
+          setSelectedRoles((prev) => prev.filter((r) => data.roles.includes(r)))
+          setSelectedJobTitles((prev) => prev.filter((t) => data.jobTitles.includes(t)))
         } else {
-          toast.error(orgsData.error || "Failed to fetch organizations.")
+          toast.error(data.error || "Failed to fetch filters.")
         }
       } catch (error) {
         toast.error("An unexpected error occurred while fetching filters.")
       }
     }
-    fetchFilters()
-  }, [])
+
+    fetchScopedFilters()
+  }, [selectedOrganizations, session])
 
   useEffect(() => {
     if (!session) return
