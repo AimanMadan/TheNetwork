@@ -65,6 +65,25 @@ export async function GET(request: NextRequest) {
             console.log('Profile incomplete, redirecting to onboarding')
             return NextResponse.redirect(new URL('/onboarding', request.url))
           }
+
+          // If profile is complete but needs LinkedIn, redirect to LinkedIn SSO
+          if (profile.needs_linkedin) {
+            console.log('Profile needs LinkedIn connection, redirecting to LinkedIn SSO')
+            const { data, error } = await supabase.auth.signInWithOAuth({
+              provider: 'linkedin_oidc',
+              options: {
+                redirectTo: `${requestUrl.origin}/auth/callback`,
+                queryParams: {
+                  scope: 'openid profile email'
+                }
+              }
+            })
+            if (error) {
+              console.error('Error initiating LinkedIn SSO:', error)
+              return NextResponse.redirect(new URL('/onboarding?error=linkedin_sso_failed', request.url))
+            }
+            return NextResponse.redirect(data.url)
+          }
         }
       }
 

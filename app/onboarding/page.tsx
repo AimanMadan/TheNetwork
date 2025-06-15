@@ -20,7 +20,7 @@ export default function OnboardingPage() {
     linkedin_account: "",
   })
   const [isLoading, setIsLoading] = useState(false)
-  const { user, refreshUser } = useAuth()
+  const { user, refreshUser, signInWithLinkedIn } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -33,7 +33,8 @@ export default function OnboardingPage() {
         last_name: user.last_name,
         job_title: user.job_title,
         linkedin_account: user.linkedin_account,
-        role: user.role
+        role: user.role,
+        needs_linkedin: user.needs_linkedin
       })
       
       setFormData({
@@ -74,6 +75,13 @@ export default function OnboardingPage() {
 
       // Refresh user data
       await refreshUser()
+
+      // If user needs LinkedIn connection, redirect to LinkedIn SSO
+      if (updatedProfile.needs_linkedin) {
+        console.log('Onboarding - User needs LinkedIn connection, redirecting to LinkedIn SSO')
+        await signInWithLinkedIn()
+        return
+      }
       
       toast.success("Profile completed successfully!")
       router.push("/dashboard")
