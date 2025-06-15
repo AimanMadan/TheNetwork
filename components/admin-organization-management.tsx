@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -25,7 +26,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Trash2, Users, ExternalLink, Check, X } from "lucide-react"
+import { Trash2, Users, Linkedin, Check, X, Mail } from "lucide-react"
 import { databaseService } from "@/lib/database"
 import type { Organization, Profile } from "@/lib/types"
 
@@ -54,6 +55,7 @@ export function AdminOrganizationManagement({
   onRefreshCounts,
   onRefreshMemberships
 }: AdminOrganizationManagementProps) {
+  const router = useRouter()
   const [newOrgName, setNewOrgName] = useState("")
   const [isAdding, setIsAdding] = useState(false)
   const [deletingOrgs, setDeletingOrgs] = useState<Set<number>>(new Set())
@@ -296,38 +298,25 @@ export function AdminOrganizationManagement({
                               <TableHeader>
                                 <TableRow className="border-gray-700">
                                   <TableHead className="text-gray-300">Name</TableHead>
-                                  <TableHead className="text-gray-300">Job Title</TableHead>
                                   <TableHead className="text-gray-300">Role</TableHead>
-                                  <TableHead className="text-gray-300">LinkedIn</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
                                 {selectedOrgMembers.map((member) => (
-                                  <TableRow key={member.id} className="border-gray-700">
+                                  <TableRow 
+                                    key={member.id} 
+                                    className="border-gray-700 cursor-pointer hover:bg-gray-700/50"
+                                    onClick={() => router.push(`/profile/${member.id}`)}
+                                  >
                                     <TableCell className="text-gray-200">
                                       {member.first_name} {member.last_name}
                                     </TableCell>
-                                    <TableCell className="text-gray-200">{member.job_title || "N/A"}</TableCell>
                                     <TableCell className="text-gray-200">
                                       <span className={`px-2 py-1 rounded-full text-xs ${
                                         member.role === "admin" ? "bg-purple-500/20 text-purple-400" : "bg-blue-500/20 text-blue-400"
                                       }`}>
                                         {member.role}
                                       </span>
-                                    </TableCell>
-                                    <TableCell className="text-gray-200">
-                                      {member.linkedin_account ? (
-                                        <a
-                                          href={member.linkedin_account}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="flex items-center justify-center gap-1 text-blue-400 hover:text-blue-300 transition-colors"
-                                        >
-                                          <ExternalLink className="h-4 w-4" />
-                                        </a>
-                                      ) : (
-                                        "N/A"
-                                      )}
                                     </TableCell>
                                   </TableRow>
                                 ))}
@@ -375,22 +364,36 @@ export function AdminOrganizationManagement({
                                   <div className="flex-1">
                                     <div className="flex items-center gap-3">
                                       <div>
-                                        <h4 className="font-medium text-white">
+                                        <h4 
+                                          className="font-medium text-white cursor-pointer hover:underline"
+                                          onClick={() => router.push(`/profile/${request.id}`)}
+                                        >
                                           {request.first_name} {request.last_name}
                                         </h4>
                                         <p className="text-sm text-gray-400">{request.job_title || "N/A"}</p>
-                                        <p className="text-sm text-gray-400">{request.email}</p>
+                                        <div className="flex items-center gap-4 mt-2">
+                                          {request.linkedin_account && (
+                                            <a
+                                              href={request.linkedin_account}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-blue-400 hover:text-blue-300"
+                                              aria-label="LinkedIn Profile"
+                                            >
+                                              <Linkedin className="h-5 w-5" />
+                                            </a>
+                                          )}
+                                          {request.email && (
+                                            <a
+                                              href={`mailto:${request.email}`}
+                                              className="text-gray-400 hover:text-gray-300 transition-colors"
+                                              aria-label="Send an email"
+                                            >
+                                              <Mail className="h-5 w-5" />
+                                            </a>
+                                          )}
+                                        </div>
                                       </div>
-                                      {request.linkedin_account && (
-                                        <a
-                                          href={request.linkedin_account}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-blue-400 hover:text-blue-300"
-                                        >
-                                          <ExternalLink className="h-4 w-4" />
-                                        </a>
-                                      )}
                                     </div>
                                   </div>
                                   <div className="flex gap-2">
