@@ -1,7 +1,7 @@
 import { databaseService } from "@/lib/database";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Linkedin } from "lucide-react";
+import { Linkedin, Mail } from "lucide-react";
 
 interface ProfilePageProps {
   params: {
@@ -41,20 +41,28 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             </div>
           </div>
           
-          {profile.linkedin_account && (
-            <div>
-              <h3 className="font-semibold text-gray-300 mb-2">Contact</h3>
-              <a
-                href={profile.linkedin_account}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                <Linkedin className="h-5 w-5" />
-                <span>LinkedIn Profile</span>
-              </a>
+          <div>
+            <h3 className="font-semibold text-gray-300 mb-2">Contact</h3>
+            <div className="flex items-center gap-4">
+              {profile.linkedin_account && (
+                <a
+                  href={profile.linkedin_account}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 transition-colors"
+                  aria-label="LinkedIn Profile"
+                >
+                  <Linkedin className="h-6 w-6" />
+                </a>
+              )}
+              {profile.email && (
+                <div className="flex items-center gap-2 text-gray-400">
+                  <Mail className="h-6 w-6" />
+                  <span>{profile.email}</span>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
     </div>
