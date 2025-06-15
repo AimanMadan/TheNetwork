@@ -122,16 +122,27 @@ export const authService = {
       profile.first_name && profile.first_name.trim() !== "" &&
       profile.last_name && profile.last_name.trim() !== "" &&
       profile.job_title && profile.job_title.trim() !== "" &&
-      profile.linkedin_account && profile.linkedin_account.trim() !== ""
+      profile.linkedin_account && profile.linkedin_account.trim() !== "" &&
+      this.isLinkedInConnected(profile)
     )
     console.log('Profile completion check:', {
       first_name: profile.first_name ? `"${profile.first_name}"` : 'NULL/EMPTY',
       last_name: profile.last_name ? `"${profile.last_name}"` : 'NULL/EMPTY', 
       job_title: profile.job_title ? `"${profile.job_title}"` : 'NULL/EMPTY',
       linkedin_account: profile.linkedin_account ? `"${profile.linkedin_account}"` : 'NULL/EMPTY',
+      isLinkedInConnected: this.isLinkedInConnected(profile),
       isComplete
     })
     return isComplete
+  },
+
+  isLinkedInConnected(profile: Profile): boolean {
+    // Check if the user has connected their LinkedIn account
+    // This can be determined by checking if they have a LinkedIn avatar or if they signed up with LinkedIn
+    const hasLinkedInAvatar = profile.avatar_url?.includes('linkedin') || false
+    const hasLinkedInAccount = profile.linkedin_account?.trim() !== "" || false
+    
+    return hasLinkedInAvatar || hasLinkedInAccount
   },
 
   onAuthStateChange(callback: (user: any) => void) {

@@ -133,6 +133,12 @@ export default function LoginPage() {
               Sign Up
             </Link>
           </p>
+
+          <div className="mt-4 p-4 bg-gray-700/50 rounded-lg">
+            <p className="text-sm text-gray-300">
+              Note: If you sign in with email or Google, you will need to connect your LinkedIn account during onboarding to complete your profile.
+            </p>
+          </div>
         </form>
       </AuthLayout>
     </AuthGuard>
