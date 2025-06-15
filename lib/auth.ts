@@ -84,7 +84,8 @@ export const authService = {
     // Check if this is a LinkedIn sign-in
     const isLinkedInSignIn = user.app_metadata?.provider === 'linkedin_oidc'
     
-    // Only set avatar URL if it's from LinkedIn
+    // For non-LinkedIn sign-ins, we don't set any avatar URL
+    // For LinkedIn sign-ins, we use their LinkedIn picture
     const avatarUrl = isLinkedInSignIn ? 
       (user.user_metadata?.linkedin_picture || user.user_metadata?.picture_url) : 
       null
@@ -102,6 +103,35 @@ export const authService = {
     }
 
     console.log('Profile data to insert:', profileData)
+
+    // For non-LinkedIn sign-ins, we need to update the profile to force LinkedIn connection
+    if (!isLinkedInSignIn) {
+      const { data: existingProfile, error: checkError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single()
+
+      if (existingProfile) {
+        // Update existing profile to force LinkedIn connection
+        const { data: updatedProfile, error: updateError } = await supabase
+          .from("profiles")
+          .update({
+            needs_linkedin: true,
+            avatar_url: null // Remove any existing avatar URL
+          })
+          .eq("id", user.id)
+          .select()
+          .single()
+
+        if (updateError) {
+          console.error('Error updating profile:', updateError)
+          throw updateError
+        }
+
+        return updatedProfile as Profile
+      }
+    }
 
     const { data: profile, error } = await supabase
       .from("profiles")
