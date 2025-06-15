@@ -16,25 +16,43 @@ interface User {
   fallback: string
 }
 
+interface Organization {
+  id: number
+  name: string
+}
+
 export default function UserDirectory() {
   const { user, session } = useAuth()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedRoles, setSelectedRoles] = useState<string[]>([])
   const [selectedJobTitles, setSelectedJobTitles] = useState<string[]>([])
+  const [selectedOrganizations, setSelectedOrganizations] = useState<number[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [roles, setRoles] = useState<string[]>([])
   const [jobTitles, setJobTitles] = useState<string[]>([])
+  const [organizations, setOrganizations] = useState<Organization[]>([])
 
   useEffect(() => {
     const fetchFilters = async () => {
       try {
-        const response = await fetch("/api/users/filters")
-        const data = await response.json()
-        if (response.ok) {
-          setRoles(data.roles)
-          setJobTitles(data.jobTitles)
+        const [filtersResponse, orgsResponse] = await Promise.all([
+          fetch("/api/users/filters"),
+          fetch("/api/organizations"),
+        ])
+        const filtersData = await filtersResponse.json()
+        const orgsData = await orgsResponse.json()
+
+        if (filtersResponse.ok) {
+          setRoles(filtersData.roles)
+          setJobTitles(filtersData.jobTitles)
         } else {
-          toast.error(data.error || "Failed to fetch filters.")
+          toast.error(filtersData.error || "Failed to fetch filters.")
+        }
+
+        if (orgsResponse.ok) {
+          setOrganizations(orgsData)
+        } else {
+          toast.error(orgsData.error || "Failed to fetch organizations.")
         }
       } catch (error) {
         toast.error("An unexpected error occurred while fetching filters.")
@@ -51,6 +69,7 @@ export default function UserDirectory() {
         params.append("query", searchQuery)
         selectedRoles.forEach((role) => params.append("roles", role))
         selectedJobTitles.forEach((title) => params.append("jobTitles", title))
+        selectedOrganizations.forEach((orgId) => params.append("organizationIds", orgId.toString()))
         const response = await fetch(`/api/users?${params.toString()}`, {
           headers: {
             Authorization: `Bearer ${session.access_token}`,
@@ -74,7 +93,7 @@ export default function UserDirectory() {
       }
     }
     fetchUsers()
-  }, [searchQuery, selectedRoles, selectedJobTitles, session])
+  }, [searchQuery, selectedRoles, selectedJobTitles, selectedOrganizations, session])
 
   const handleRoleChange = (role: string) => {
     setSelectedRoles((prev) =>
@@ -85,6 +104,12 @@ export default function UserDirectory() {
   const handleJobTitleChange = (title: string) => {
     setSelectedJobTitles((prev) =>
       prev.includes(title) ? prev.filter((t) => t !== title) : [...prev, title]
+    )
+  }
+
+  const handleOrganizationChange = (orgId: number) => {
+    setSelectedOrganizations((prev) =>
+      prev.includes(orgId) ? prev.filter((id) => id !== orgId) : [...prev, orgId]
     )
   }
 
@@ -110,14 +135,16 @@ export default function UserDirectory() {
         <div className="container mx-auto">
           <div className="mb-6">
             <h2 className="text-2xl font-bold mb-4">Community</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Input
-                placeholder="Search by name or email"
-                className="col-span-1 md:col-span-4"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <div className="col-span-1 md:col-span-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="col-span-1 md:col-span-3">
+                <Input
+                  placeholder="Search by name or email"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <div>
                 <h3 className="text-lg font-semibold mb-2">Roles</h3>
                 <div className="space-y-2">
                   {roles.map((role) => (
@@ -132,7 +159,7 @@ export default function UserDirectory() {
                   ))}
                 </div>
               </div>
-              <div className="col-span-1 md:col-span-2">
+              <div>
                 <h3 className="text-lg font-semibold mb-2">Job Titles</h3>
                 <div className="space-y-2">
                   {jobTitles.map((title) => (
@@ -143,6 +170,21 @@ export default function UserDirectory() {
                         onCheckedChange={() => handleJobTitleChange(title)}
                       />
                       <Label htmlFor={title}>{title}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Organizations</h3>
+                <div className="space-y-2">
+                  {organizations.map((org) => (
+                    <div key={org.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`org-${org.id}`}
+                        checked={selectedOrganizations.includes(org.id)}
+                        onCheckedChange={() => handleOrganizationChange(org.id)}
+                      />
+                      <Label htmlFor={`org-${org.id}`}>{org.name}</Label>
                     </div>
                   ))}
                 </div>

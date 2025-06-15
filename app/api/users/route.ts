@@ -7,6 +7,7 @@ export async function GET(req: NextRequest) {
   const query = searchParams.get("query") || ""
   const roles = searchParams.getAll("roles")
   const jobTitles = searchParams.getAll("jobTitles")
+  const organizationIds = searchParams.getAll("organizationIds")
 
   try {
     const supabase_session = createClient(
@@ -37,6 +38,10 @@ export async function GET(req: NextRequest) {
 
     if (jobTitles.length > 0) {
       queryBuilder = queryBuilder.in("job_title", jobTitles)
+    }
+
+    if (organizationIds.length > 0) {
+      queryBuilder = queryBuilder.filter("user_organizations.organization_id", "in", `(${organizationIds.join(",")})`)
     }
 
     const { data: profile, error: profileError } = await supabase
