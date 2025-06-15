@@ -68,37 +68,28 @@ export default function DashboardPage() {
     try {
       setLoading(true)
       console.log('Dashboard - Loading data for user:', user?.email)
-
-      // Load member counts and pending counts for all organizations
-      const [counts, pendingRequestCounts] = await Promise.all([
-        databaseService.getOrganizationMemberCounts(),
-        databaseService.getOrganizationPendingCounts()
-      ])
-      setMemberCounts(counts)
-      setPendingCounts(pendingRequestCounts)
-
-      // Fetch all organizations and user's memberships
-      const [allOrgs, userMemberships] = await Promise.all([
+      
+      const [allOrgs, userMemberships, counts, pendingRequestCounts] = await Promise.all([
         databaseService.getAllOrganizations(),
         databaseService.getUserMemberships(user!.id),
+        databaseService.getOrganizationMemberCounts(),
+        databaseService.getOrganizationPendingCounts(),
       ])
 
-      // Convert memberships array to Map
       const membershipsMap = new Map(
         userMemberships.map((m: Membership) => [m.organization_id, m.status])
       )
+
       setMemberships(membershipsMap)
-      console.log('Dashboard - User role:', user?.role)
+      setMemberCounts(counts)
+      setPendingCounts(pendingRequestCounts)
 
       if (user?.role === "admin") {
         console.log('Dashboard - Loading admin data')
-        // Admin sees all organizations and all profiles
         setOrganizations(allOrgs)
-        const allProfiles = await databaseService.getAllProfiles()
-        setMembers(allProfiles)
+        // Defer loading all members
       } else {
         console.log('Dashboard - Loading regular user data')
-        // Regular user sees all organizations to browse
         setAvailableOrganizations(allOrgs)
       }
     } catch (error: any) {
@@ -190,8 +181,7 @@ export default function DashboardPage() {
     try {
       await databaseService.updateUserRole(userId, newRole)
       // Refresh members list to show updated roles
-      const membersData = await databaseService.getAllProfiles()
-      setMembers(membersData)
+      // This will be handled by the AdminUserManagement component
       toast.success("User role updated successfully!")
     } catch (error: any) {
       toast.error(error.message || "Failed to update user role")
@@ -280,37 +270,42 @@ export default function DashboardPage() {
               </Link>
             </CardContent>
           </Card>
-          {user?.role === "admin" ? (
-            <div className="space-y-6">
-              <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
-              <AdminUserManagement users={members} onUpdateUserRole={handleUpdateUserRole} />
-              <AdminOrganizationManagement
-                organizations={organizations}
-                onAddOrganization={handleAddOrganization}
-                onDeleteOrganization={handleDeleteOrganization}
-                onJoinOrganization={handleRequestToJoin}
-                onLeaveOrganization={handleCancelOrLeave}
-                memberships={memberships}
-                memberCounts={memberCounts}
-                pendingCounts={pendingCounts}
-                onRefreshCounts={refreshCounts}
-                onRefreshMemberships={refreshUserMemberships}
-              />
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <h1 className="text-3xl font-bold text-white">
-                Organizations
-              </h1>
-              <OrganizationsToJoinTable
-                organizations={availableOrganizations}
-                onJoinOrganization={handleRequestToJoin}
-                onLeaveOrganization={handleCancelOrLeave}
-                memberships={memberships}
-                memberCounts={memberCounts}
-              />
-            </div>
-          )}
+          <div className="space-y-8">
+            {user?.role === "admin" && (
+              <>
+                <AdminOrganizationManagement
+                  organizations={organizations}
+                  memberCounts={memberCounts}
+                  pendingCounts={pendingCounts}
+                  onAddOrganization={handleAddOrganization}
+                  onDeleteOrganization={handleDeleteOrganization}
+                  onRefreshCounts={refreshCounts}
+                  onJoinOrganization={handleRequestToJoin}
+                  onLeaveOrganization={handleCancelOrLeave}
+                  memberships={memberships}
+                  onRefreshMemberships={refreshUserMemberships}
+                />
+                <AdminUserManagement
+                  onUpdateUserRole={handleUpdateUserRole}
+                />
+              </>
+            )}
+
+            {user?.role !== "admin" && (
+              <div className="space-y-6">
+                <h1 className="text-3xl font-bold text-white">
+                  Organizations
+                </h1>
+                <OrganizationsToJoinTable
+                  organizations={availableOrganizations}
+                  onJoinOrganization={handleRequestToJoin}
+                  onLeaveOrganization={handleCancelOrLeave}
+                  memberships={memberships}
+                  memberCounts={memberCounts}
+                />
+              </div>
+            )}
+          </div>
         </main>
       </div>
     </AuthGuard>

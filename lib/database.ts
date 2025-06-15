@@ -28,6 +28,42 @@ export const databaseService = {
     }
   },
 
+  async getPaginatedProfiles(
+    page: number,
+    limit: number
+  ): Promise<{ data: Profile[]; hasMore: boolean }> {
+    try {
+      const from = page * limit
+      const to = from + limit - 1
+
+      const { data, error } = await supabase
+        .rpc("get_all_profiles_admin")
+        .range(from, to)
+
+      if (error) {
+        throw new Error(`Failed to get paginated profiles: ${error.message}`)
+      }
+
+      // To check if there are more pages, we fetch one more item than the limit
+      const { data: nextPageData, error: nextPageError } = await supabase
+        .rpc("get_all_profiles_admin")
+        .range(from + limit, from + limit)
+        .limit(1)
+
+      if (nextPageError) {
+        console.warn(`Could not check for more pages: ${nextPageError.message}`)
+      }
+
+      return {
+        data: data || [],
+        hasMore: !!nextPageData && nextPageData.length > 0,
+      }
+    } catch (error) {
+      console.error("Error getting paginated profiles:", error)
+      throw error
+    }
+  },
+
   /**
    * Retrieves a single user profile by their ID.
    * @param userId - The unique identifier of the user
