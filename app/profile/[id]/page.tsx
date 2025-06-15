@@ -56,10 +56,13 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 </a>
               )}
               {profile.email && (
-                <div className="flex items-center gap-2 text-gray-400">
+                <a
+                  href={`mailto:${profile.email}`}
+                  className="text-gray-400 hover:text-gray-300 transition-colors"
+                  aria-label="Send an email"
+                >
                   <Mail className="h-6 w-6" />
-                  <span>{profile.email}</span>
-                </div>
+                </a>
               )}
             </div>
           </div>
