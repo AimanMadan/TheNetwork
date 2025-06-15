@@ -13,7 +13,7 @@ import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users } from "lucide-react"
+import { Search } from "lucide-react"
 
 // Add type definitions for membership status
 type MembershipStatus = 'pending' | 'approved'
@@ -265,7 +265,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <Link href="/users" className="flex items-center space-x-2 text-blue-400 hover:underline">
-                <Users className="w-5 h-5" />
+                <Search className="w-5 h-5" />
                 <span>Explore the Community</span>
               </Link>
             </CardContent>
