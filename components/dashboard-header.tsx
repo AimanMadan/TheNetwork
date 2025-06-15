@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { LogOut } from "lucide-react"
+import Link from "next/link"
 
 interface DashboardHeaderProps {
   firstName: string
@@ -14,6 +15,9 @@ export function DashboardHeader({ firstName, onSignOut }: DashboardHeaderProps) 
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <div className="text-xl font-bold text-white">Dashboard</div>
+          <Link href="/users" className="text-gray-300 hover:text-white">
+            Community
+          </Link>
         </div>
         <div className="flex items-center space-x-4">
           <span className="text-gray-300">Welcome, {firstName}!</span>
