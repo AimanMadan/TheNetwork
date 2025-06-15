@@ -7,6 +7,7 @@ export interface Profile {
   email: string | null
   role: "user" | "admin"
   avatar_url: string | null
+  needs_linkedin: boolean
 }
 
 export interface Organization {

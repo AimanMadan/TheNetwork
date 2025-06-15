@@ -81,9 +81,13 @@ export const authService = {
     const firstName = user.user_metadata?.given_name || user.user_metadata?.first_name || nameParts[0] || null
     const lastName = user.user_metadata?.family_name || user.user_metadata?.last_name || nameParts.slice(1).join(' ') || null
 
+    // Check if this is a LinkedIn sign-in
+    const isLinkedInSignIn = user.app_metadata?.provider === 'linkedin_oidc'
+    
     // Only set avatar URL if it's from LinkedIn
-    const avatarUrl = user.user_metadata?.linkedin_picture || 
-                     (user.user_metadata?.picture_url?.includes('linkedin') ? user.user_metadata.picture_url : null)
+    const avatarUrl = isLinkedInSignIn ? 
+      (user.user_metadata?.linkedin_picture || user.user_metadata?.picture_url) : 
+      null
 
     const profileData = {
       id: user.id,
@@ -94,6 +98,7 @@ export const authService = {
       linkedin_account: null,
       role: "user" as const,
       avatar_url: avatarUrl,
+      needs_linkedin: !isLinkedInSignIn, // Flag to indicate if LinkedIn connection is needed
     }
 
     console.log('Profile data to insert:', profileData)
@@ -110,11 +115,15 @@ export const authService = {
     }
     
     console.log('Profile created successfully:', profile)
-    console.log('Profile will be incomplete - user must complete onboarding')
     return profile as Profile
   },
 
   isProfileComplete(profile: Profile): boolean {
+    // If user needs LinkedIn connection, profile is not complete
+    if (profile.needs_linkedin) {
+      return false
+    }
+
     const isComplete = !!(
       profile.first_name && profile.first_name.trim() !== "" &&
       profile.last_name && profile.last_name.trim() !== "" &&
@@ -128,6 +137,7 @@ export const authService = {
       job_title: profile.job_title ? `"${profile.job_title}"` : 'NULL/EMPTY',
       linkedin_account: profile.linkedin_account ? `"${profile.linkedin_account}"` : 'NULL/EMPTY',
       isLinkedInConnected: this.isLinkedInConnected(profile),
+      needs_linkedin: profile.needs_linkedin,
       isComplete
     })
     return isComplete
@@ -135,11 +145,11 @@ export const authService = {
 
   isLinkedInConnected(profile: Profile): boolean {
     // Check if the user has connected their LinkedIn account
-    // This can be determined by checking if they have a LinkedIn avatar or if they signed up with LinkedIn
     const hasLinkedInAvatar = profile.avatar_url?.includes('linkedin') || false
     const hasLinkedInAccount = profile.linkedin_account?.trim() !== "" || false
+    const isLinkedInSignIn = !profile.needs_linkedin
     
-    return hasLinkedInAvatar || hasLinkedInAccount
+    return hasLinkedInAvatar || hasLinkedInAccount || isLinkedInSignIn
   },
 
   onAuthStateChange(callback: (user: any) => void) {

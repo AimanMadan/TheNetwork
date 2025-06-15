@@ -12,6 +12,8 @@ export interface Database {
           linkedin_account: string | null
           email: string | null
           role: string
+          avatar_url: string | null
+          needs_linkedin: boolean
         }
         Insert: {
           id: string
@@ -21,6 +23,8 @@ export interface Database {
           linkedin_account?: string | null
           email?: string | null
           role?: string
+          avatar_url?: string | null
+          needs_linkedin?: boolean
         }
         Update: {
           id?: string
@@ -30,6 +34,8 @@ export interface Database {
           linkedin_account?: string | null
           email?: string | null
           role?: string
+          avatar_url?: string | null
+          needs_linkedin?: boolean
         }
       }
       organizations: {

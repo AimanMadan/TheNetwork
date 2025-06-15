@@ -48,7 +48,8 @@ export async function GET(request: NextRequest) {
             profile.first_name && profile.first_name.trim() !== "" &&
             profile.last_name && profile.last_name.trim() !== "" &&
             profile.job_title && profile.job_title.trim() !== "" &&
-            profile.linkedin_account && profile.linkedin_account.trim() !== ""
+            profile.linkedin_account && profile.linkedin_account.trim() !== "" &&
+            !profile.needs_linkedin
           )
           
           console.log('Profile completeness:', {
@@ -56,6 +57,7 @@ export async function GET(request: NextRequest) {
             last_name: profile.last_name ? `"${profile.last_name}"` : 'NULL/EMPTY',
             job_title: profile.job_title ? `"${profile.job_title}"` : 'NULL/EMPTY',
             linkedin_account: profile.linkedin_account ? `"${profile.linkedin_account}"` : 'NULL/EMPTY',
+            needs_linkedin: profile.needs_linkedin,
             isComplete
           })
 
