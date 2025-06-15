@@ -9,11 +9,15 @@ interface ProfilePageProps {
   params: {
     id: string;
   };
+  searchParams: {
+    from?: string;
+  }
 }
 
-export default async function ProfilePage({ params }: ProfilePageProps) {
+export default async function ProfilePage({ params, searchParams }: ProfilePageProps) {
   const userId = params.id;
   const profile = await databaseService.getProfile(userId);
+  const backHref = searchParams.from || '/dashboard';
 
   if (!profile) {
     notFound();
@@ -22,9 +26,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   return (
     <div className="container mx-auto py-10">
       <div className="mb-4">
-        <Link href="/users" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+        <Link href={backHref} className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
             <ArrowLeft className="w-5 h-5" />
-            <span>Back to Directory</span>
+            <span>Back</span>
         </Link>
       </div>
       <Card className="max-w-2xl mx-auto bg-gray-800 border-gray-700 text-white">

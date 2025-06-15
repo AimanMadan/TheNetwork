@@ -129,7 +129,7 @@ export function AdminUserManagement({
                     >
                       <TableCell
                         className="w-[30%] px-4 py-2 text-gray-200 cursor-pointer hover:underline"
-                        onClick={() => router.push(`/profile/${user.id}`)}
+                        onClick={() => router.push(`/profile/${user.id}?from=/dashboard`)}
                       >
                         {user.first_name} {user.last_name}
                       </TableCell>

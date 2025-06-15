@@ -215,14 +215,16 @@ export default function UserDirectory() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {users.map((user) => (
-              <Card key={user.id} className="p-4 flex flex-col items-center">
-                <Avatar className="w-20 h-20 mb-4">
-                  <AvatarImage src={user.avatar} />
-                  <AvatarFallback>{user.fallback}</AvatarFallback>
-                </Avatar>
-                <h3 className="text-lg font-bold">{user.name}</h3>
-                <p className="text-gray-500 dark:text-gray-400">{user.role}</p>
-              </Card>
+              <Link key={user.id} href={`/profile/${user.id}?from=/users`}>
+                <Card className="p-4 flex flex-col items-center h-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                  <Avatar className="w-20 h-20 mb-4">
+                    <AvatarImage src={user.avatar} />
+                    <AvatarFallback>{user.fallback}</AvatarFallback>
+                  </Avatar>
+                  <h3 className="text-lg font-bold text-center">{user.name}</h3>
+                  <p className="text-gray-500 dark:text-gray-400 text-center">{user.role}</p>
+                </Card>
+              </Link>
             ))}
           </div>
         </div>
