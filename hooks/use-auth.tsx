@@ -5,9 +5,12 @@ import type React from "react"
 import { useState, useEffect, createContext, useContext } from "react"
 import { authService, type SignUpData } from "@/lib/auth"
 import type { Profile } from "@/lib/types"
+import type { Session } from "@supabase/supabase-js"
+import { supabase } from "@/lib/supabase"
 
 interface AuthContextType {
   user: Profile | null
+  session: Session | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
   signUp: (data: SignUpData) => Promise<void>
@@ -20,28 +23,32 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<Profile | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Get initial user
-    authService
-      .getCurrentUser()
-      .then(setUser)
-      .catch(console.error)
-      .finally(() => setLoading(false))
+    const getSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      setSession(session)
 
-    // Listen for auth changes
+      if (session?.user) {
+        const profile = await authService.getCurrentUser()
+        setUser(profile)
+      }
+      setLoading(false)
+    }
+
+    getSession()
+
     const {
       data: { subscription },
-    } = authService.onAuthStateChange(async (authUser) => {
-      if (authUser) {
-        try {
-          const profile = await authService.getCurrentUser()
-          setUser(profile)
-        } catch (error) {
-          console.error("Error fetching user profile:", error)
-          setUser(null)
-        }
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setSession(session)
+      if (session?.user) {
+        const profile = await authService.getCurrentUser()
+        setUser(profile)
       } else {
         setUser(null)
       }
@@ -77,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
+        session,
         loading,
         signIn,
         signUp,
