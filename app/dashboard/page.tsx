@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Search } from "lucide-react"
+import { isProfileComplete } from "@/lib/utils"
 
 // Add type definitions for membership status
 type MembershipStatus = 'pending' | 'approved'
@@ -41,19 +42,8 @@ export default function DashboardPage() {
       processingUser.current = user.id
       console.log("Dashboard - Processing user:", user.id)
 
-      // Double-check profile completion before loading dashboard data
-      const isComplete = !!(
-        user.first_name &&
-        user.first_name.trim() !== "" &&
-        user.last_name &&
-        user.last_name.trim() !== "" &&
-        user.job_title &&
-        user.job_title.trim() !== "" &&
-        user.linkedin_account &&
-        user.linkedin_account.trim() !== ""
-      )
-
-      if (!isComplete) {
+      // Use the centralized profile completion check
+      if (!isProfileComplete(user)) {
         console.log("Dashboard - Profile incomplete, redirecting to onboarding")
         router.push("/onboarding")
         return
@@ -254,7 +244,7 @@ export default function DashboardPage() {
     <AuthGuard>
       <div className="flex flex-col min-h-screen bg-gray-900 text-white">
         <DashboardHeader
-          firstName={user?.first_name || "User"}
+          firstName={user?.user_metadata.full_name?.split(' ')[0] || "User"}
           onSignOut={handleSignOut}
         />
         <main className="flex-1 p-6 space-y-6">
