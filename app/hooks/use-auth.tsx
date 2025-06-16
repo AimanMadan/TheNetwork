@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
-            scope: "openid profile email w_member_social",
+            scope: "openid profile email",
           },
         },
       })
