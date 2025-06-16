@@ -1,11 +1,10 @@
 "use client"
 
-import { useAuth } from "@/app/hooks/use-auth"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { FaLinkedin } from "react-icons/fa"
 
 export default function HomePage() {
-  const { signInWithLinkedIn } = useAuth()
+  const router = useRouter()
 
   return (
     <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4">
@@ -17,12 +16,12 @@ export default function HomePage() {
           Connect with professionals and grow your network
         </p>
         <Button
-          onClick={signInWithLinkedIn}
-          className="bg-[#0077B5] hover:bg-[#006399] text-white px-8 py-6 text-lg"
+          onClick={() => router.push("/login")}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-12 py-6 text-xl font-bold"
         >
-          <FaLinkedin className="mr-2 h-6 w-6" />
-          Sign in with LinkedIn
+          HOP IN
         </Button>
+        <p className="text-gray-500 text-sm">No signup logic</p>
       </div>
     </div>
   )
