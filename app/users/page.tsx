@@ -8,7 +8,8 @@ import { Card } from "@/components/ui/card"
 import { toast } from "sonner"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/app/hooks/use-auth"
+import { supabase } from "@/lib/supabase"
 
 interface User {
   id: number
@@ -24,7 +25,7 @@ interface Organization {
 }
 
 export default function UserDirectory() {
-  const { user, session } = useAuth()
+  const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedRoles, setSelectedRoles] = useState<string[]>([])
   const [selectedJobTitles, setSelectedJobTitles] = useState<string[]>([])
@@ -33,6 +34,12 @@ export default function UserDirectory() {
   const [roles, setRoles] = useState<string[]>([])
   const [jobTitles, setJobTitles] = useState<string[]>([])
   const [organizations, setOrganizations] = useState<Organization[]>([])
+
+  // Get session when needed
+  const getSession = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    return session
+  }
 
   useEffect(() => {
     const fetchOrgs = async () => {
@@ -52,9 +59,12 @@ export default function UserDirectory() {
   }, [])
 
   useEffect(() => {
-    if (!session) return
+    if (!user) return
     const fetchScopedFilters = async () => {
       try {
+        const session = await getSession()
+        if (!session) return
+        
         const params = new URLSearchParams()
         selectedOrganizations.forEach((orgId) => params.append("organizationIds", orgId.toString()))
         const response = await fetch(`/api/users/filters?${params.toString()}`, {
@@ -77,12 +87,15 @@ export default function UserDirectory() {
     }
 
     fetchScopedFilters()
-  }, [selectedOrganizations, session])
+  }, [selectedOrganizations, user])
 
   useEffect(() => {
-    if (!session) return
+    if (!user) return
     const fetchUsers = async () => {
       try {
+        const session = await getSession()
+        if (!session) return
+        
         const params = new URLSearchParams()
         params.append("query", searchQuery)
         selectedRoles.forEach((role) => params.append("roles", role))
@@ -111,7 +124,7 @@ export default function UserDirectory() {
       }
     }
     fetchUsers()
-  }, [searchQuery, selectedRoles, selectedJobTitles, selectedOrganizations, session])
+  }, [searchQuery, selectedRoles, selectedJobTitles, selectedOrganizations, user])
 
   const handleRoleChange = (role: string) => {
     setSelectedRoles((prev) =>

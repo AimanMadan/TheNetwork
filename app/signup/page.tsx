@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { AuthLayout } from "@/components/auth-layout"
 import { AuthGuard } from "@/components/auth-guard"
-import { useAuth } from "@/hooks/use-auth"
+import { authService } from "@/lib/auth"
 import { toast } from "sonner"
 
 export default function SignUpPage() {
@@ -22,7 +22,6 @@ export default function SignUpPage() {
     password: "",
   })
   const [isLoading, setIsLoading] = useState(false)
-  const { signUp } = useAuth()
   const router = useRouter()
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,7 +34,7 @@ export default function SignUpPage() {
     setIsLoading(true)
 
     try {
-      await signUp(formData)
+      await authService.signUp(formData)
       toast.success("Account created successfully! Please check your email to verify your account.")
       router.push("/login")
     } catch (error: any) {

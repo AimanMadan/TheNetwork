@@ -6,9 +6,10 @@ import { OrganizationsToJoinTable } from "@/components/organizations-to-join-tab
 import { AdminOrganizationManagement } from "@/components/admin-organization-management"
 import { AdminUserManagement } from "@/components/admin-user-management"
 import { AuthGuard } from "@/components/auth-guard"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/app/hooks/use-auth"
 import { useIsMounted } from "@/hooks/use-is-mounted"
 import { databaseService } from "@/lib/database"
+import { authService } from "@/lib/auth"
 import type { Profile, Organization } from "@/lib/types"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
@@ -41,17 +42,8 @@ export default function DashboardPage() {
       processingUser.current = user.id
       console.log("Dashboard - Processing user:", user.id)
 
-      // Double-check profile completion before loading dashboard data
-      const isComplete = !!(
-        user.first_name &&
-        user.first_name.trim() !== "" &&
-        user.last_name &&
-        user.last_name.trim() !== "" &&
-        user.job_title &&
-        user.job_title.trim() !== "" &&
-        user.linkedin_account &&
-        user.linkedin_account.trim() !== ""
-      )
+      // Use the centralized profile completion check
+      const isComplete = authService.isProfileComplete(user)
 
       if (!isComplete) {
         console.log("Dashboard - Profile incomplete, redirecting to onboarding")
