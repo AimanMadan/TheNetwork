@@ -38,9 +38,12 @@ export default function OnboardingPage() {
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({
+        .upsert({
+          id: user.id,
+          email: user.email,
           full_name: fullName,
           company: company,
+          avatar_url: user.user_metadata.avatar_url,
           updated_at: new Date().toISOString(),
         })
         .eq("id", user.id)

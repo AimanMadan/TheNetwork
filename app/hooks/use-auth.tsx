@@ -6,16 +6,15 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { AuthChangeEvent, Session, User as SupabaseUser } from "@supabase/supabase-js"
 
-// This is the user profile from our "profiles" table
+// The user profile from our "profiles" table. These fields are optional on the final user object.
 interface UserProfile {
-  id: string
   full_name: string
   avatar_url: string
   company: string
 }
 
-// The user object available in our hook will be a combination of auth user and profile
-type User = SupabaseUser & UserProfile
+// The user object available in our hook will be the auth user merged with their profile data.
+type User = SupabaseUser & Partial<UserProfile>
 
 interface AuthContextType {
   user: User | null
@@ -36,39 +35,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   )
 
   useEffect(() => {
-    const getFullUserProfile = async (authUser: SupabaseUser): Promise<User | null> => {
+    const getAndSetUser = async (authUser: SupabaseUser | null) => {
+      if (!authUser) {
+        setUser(null)
+        setLoading(false)
+        return
+      }
+
+      // Fetch the user's profile from the database
       const { data: profile } = await supabase
         .from("profiles")
-        .select("*")
+        .select("full_name, avatar_url, company")
         .eq("id", authUser.id)
         .single()
       
-      return profile ? { ...authUser, ...profile } : null
-    }
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event: AuthChangeEvent, session: Session | null) => {
-        if (session?.user) {
-          const fullUserProfile = await getFullUserProfile(session.user)
-          setUser(fullUserProfile)
-        } else {
-          setUser(null)
-        }
-        setLoading(false)
+      // Merge the auth user with their profile data
+      const mergedUser: User = {
+        ...authUser,
+        ...profile,
       }
-    )
-
-    // Check for initial session
-    const checkInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        const fullUserProfile = await getFullUserProfile(session.user)
-        setUser(fullUserProfile)
-      }
+      
+      setUser(mergedUser)
       setLoading(false)
     }
 
-    checkInitialSession()
+    // Run once on mount
+    const initialFetch = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      await getAndSetUser(session?.user ?? null)
+    }
+    initialFetch()
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        await getAndSetUser(session?.user ?? null)
+      }
+    )
 
     return () => {
       subscription.unsubscribe()
