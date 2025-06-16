@@ -26,15 +26,19 @@ export function useAuth() {
 
   const signInWithLinkedIn = useCallback(async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "linkedin_oidc",
         options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
             scope: "openid profile email",
           },
         },
       })
       if (error) throw error
+      if (data.url) {
+        window.location.href = data.url
+      }
     } catch (error) {
       console.error("Error signing in with LinkedIn:", error)
       throw error
@@ -45,7 +49,7 @@ export function useAuth() {
     try {
       const { error } = await supabase.auth.signOut()
       if (error) throw error
-      router.push("/login")
+      router.push("/")
     } catch (error) {
       console.error("Error signing out:", error)
       throw error
