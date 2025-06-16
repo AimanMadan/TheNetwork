@@ -42,13 +42,6 @@ export default function DashboardPage() {
       processingUser.current = user.id
       console.log("Dashboard - Processing user:", user.id)
 
-      // Use the centralized profile completion check
-      if (!isProfileComplete(user)) {
-        console.log("Dashboard - Profile incomplete, redirecting to onboarding")
-        router.push("/onboarding")
-        return
-      }
-
       loadData()
     }
   }, [user, isMounted, router])
@@ -241,7 +234,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <AuthGuard>
+    <AuthGuard requireProfileComplete={true}>
       <div className="flex flex-col min-h-screen bg-gray-900 text-white">
         <DashboardHeader
           firstName={user?.user_metadata.full_name?.split(' ')[0] || "User"}
