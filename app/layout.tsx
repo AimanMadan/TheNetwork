@@ -1,8 +1,8 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
-import { AuthProvider } from "@/hooks/use-auth"
-import { Toaster } from "sonner"
+import { AuthProvider } from "@/app/hooks/use-auth"
+import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
 
 const inter = Inter({
@@ -12,8 +12,8 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: "User & Organization Dashboard",
-  description: "Modern dashboard for managing users and organizations",
+  title: "The Network",
+  description: "A new way to connect with professionals.",
   generator: 'v0.dev'
 }
 
