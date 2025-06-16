@@ -1,97 +1,88 @@
-import { createClient } from '@supabase/supabase-js'
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { createServerClient } from "@supabase/ssr"
+import { cookies } from "next/headers"
+import { NextResponse } from "next/server"
+import { createProfileFromAuthUser } from "@/lib/auth"
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
-  const code = requestUrl.searchParams.get('code')
-
-  console.log('Auth callback triggered with code:', !!code)
+  const code = requestUrl.searchParams.get("code")
+  const next = requestUrl.searchParams.get("next") || "/dashboard"
 
   if (code) {
-    const supabase = createClient(
+    const cookieStore = cookies()
+    const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: any) {
+            cookieStore.set({ name, value, ...options })
+          },
+          remove(name: string, options: any) {
+            cookieStore.set({ name, value: "", ...options })
+          },
+        },
+      }
     )
+
+    const { error: signInError } = await supabase.auth.exchangeCodeForSession(code)
     
-    try {
-      console.log('Exchanging code for session...')
-      const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-      console.log('Code exchange result:', { user: !!data.user, error })
-
-      if (error) {
-        console.error('Error exchanging code:', error)
-        return NextResponse.redirect(new URL('/login?error=auth_callback_error', request.url))
-      }
-
-      if (data.user) {
-        console.log('User authenticated, checking profile...')
-        
-        // Check if profile exists
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", data.user.id)
-          .single()
-
-        console.log('Profile check result:', { profile: !!profile, error: profileError?.code })
-
-        if (profileError && profileError.code === "PGRST116") {
-          // Profile doesn't exist, user will need to complete onboarding
-          console.log('No profile found, redirecting to onboarding')
-          return NextResponse.redirect(new URL('/onboarding', request.url))
-        }
-
-        if (profile) {
-          // Check if profile is complete - all required fields must be non-null and non-empty
-          const isComplete = !!(
-            profile.first_name && profile.first_name.trim() !== "" &&
-            profile.last_name && profile.last_name.trim() !== "" &&
-            profile.job_title && profile.job_title.trim() !== "" &&
-            profile.linkedin_account && profile.linkedin_account.trim() !== "" &&
-            !profile.needs_linkedin
-          )
-          
-          console.log('Profile completeness:', {
-            first_name: profile.first_name ? `"${profile.first_name}"` : 'NULL/EMPTY',
-            last_name: profile.last_name ? `"${profile.last_name}"` : 'NULL/EMPTY',
-            job_title: profile.job_title ? `"${profile.job_title}"` : 'NULL/EMPTY',
-            linkedin_account: profile.linkedin_account ? `"${profile.linkedin_account}"` : 'NULL/EMPTY',
-            needs_linkedin: profile.needs_linkedin,
-            isComplete
-          })
-
-          if (!isComplete) {
-            console.log('Profile incomplete, redirecting to onboarding')
-            return NextResponse.redirect(new URL('/onboarding', request.url))
-          }
-
-          // If profile is complete but needs LinkedIn, redirect to LinkedIn SSO
-          if (profile.needs_linkedin) {
-            console.log('Profile needs LinkedIn connection, redirecting to LinkedIn SSO')
-            const { data, error } = await supabase.auth.signInWithOAuth({
-              provider: 'linkedin_oidc',
-              options: {
-                redirectTo: `${requestUrl.origin}/auth/callback`,
-                queryParams: {
-                  scope: 'openid profile email'
-                }
-              }
-            })
-            if (error) {
-              console.error('Error initiating LinkedIn SSO:', error)
-              return NextResponse.redirect(new URL('/onboarding?error=linkedin_sso_failed', request.url))
-            }
-            return NextResponse.redirect(data.url)
-          }
-        }
-      }
-
-    } catch (error) {
-      console.error('Error in auth callback:', error)
+    if (signInError) {
+      console.error("Error exchanging code for session:", signInError)
+      return NextResponse.redirect(`${requestUrl.origin}/login?error=${encodeURIComponent(signInError.message)}`)
     }
+
+    // Get the user after successful sign in
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    if (userError || !user) {
+      console.error("Error getting user:", userError)
+      return NextResponse.redirect(`${requestUrl.origin}/login?error=${encodeURIComponent("Failed to get user data")}`)
+    }
+
+    // Create or update profile
+    const { data: profile, error: profileError } = await createProfileFromAuthUser(supabase, user)
+    
+    if (profileError) {
+      console.error("Error creating/updating profile:", profileError)
+      return NextResponse.redirect(`${requestUrl.origin}/login?error=${encodeURIComponent(profileError.message)}`)
+    }
+
+    // Check if profile is complete
+    const isProfileComplete = profile && 
+      profile.first_name && 
+      profile.last_name && 
+      profile.email && 
+      profile.avatar_url &&
+      profile.job_title &&
+      profile.company &&
+      profile.linkedin_account
+
+    console.log("Profile completeness check:", {
+      profile,
+      isComplete: isProfileComplete,
+      hasFirstName: !!profile?.first_name,
+      hasLastName: !!profile?.last_name,
+      hasEmail: !!profile?.email,
+      hasAvatar: !!profile?.avatar_url,
+      hasJobTitle: !!profile?.job_title,
+      hasCompany: !!profile?.company,
+      hasLinkedIn: !!profile?.linkedin_account
+    })
+
+    // If profile is incomplete, redirect to onboarding
+    if (!isProfileComplete) {
+      console.log("Profile incomplete, redirecting to onboarding")
+      return NextResponse.redirect(`${requestUrl.origin}/onboarding`)
+    }
+
+    // If profile is complete, redirect to dashboard
+    return NextResponse.redirect(`${requestUrl.origin}${next}`)
   }
 
-  console.log('Redirecting to dashboard')
-  return NextResponse.redirect(new URL('/dashboard', request.url))
+  // If no code is present, redirect to login
+  return NextResponse.redirect(`${requestUrl.origin}/login`)
 } 

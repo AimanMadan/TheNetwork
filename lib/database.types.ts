@@ -1,4 +1,10 @@
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
 export interface Database {
   public: {
@@ -6,36 +12,39 @@ export interface Database {
       profiles: {
         Row: {
           id: string
+          created_at: string
+          updated_at: string
+          email: string
           first_name: string | null
           last_name: string | null
-          job_title: string | null
-          linkedin_account: string | null
-          email: string | null
-          role: string
           avatar_url: string | null
-          needs_linkedin: boolean
+          job_title: string | null
+          company: string | null
+          linkedin_account: string | null
         }
         Insert: {
           id: string
+          created_at?: string
+          updated_at?: string
+          email: string
           first_name?: string | null
           last_name?: string | null
-          job_title?: string | null
-          linkedin_account?: string | null
-          email?: string | null
-          role?: string
           avatar_url?: string | null
-          needs_linkedin?: boolean
+          job_title?: string | null
+          company?: string | null
+          linkedin_account?: string | null
         }
         Update: {
           id?: string
+          created_at?: string
+          updated_at?: string
+          email?: string
           first_name?: string | null
           last_name?: string | null
-          job_title?: string | null
-          linkedin_account?: string | null
-          email?: string | null
-          role?: string
           avatar_url?: string | null
-          needs_linkedin?: boolean
+          job_title?: string | null
+          company?: string | null
+          linkedin_account?: string | null
         }
       }
       organizations: {
@@ -66,6 +75,15 @@ export interface Database {
           organization_id?: number
         }
       }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
     }
   }
 }

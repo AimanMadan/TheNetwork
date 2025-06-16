@@ -1,5 +1,8 @@
 import { supabase } from "./supabase"
 import type { Profile } from "./types"
+import { createClient } from "@supabase/supabase-js"
+import type { User } from "@supabase/supabase-js"
+import type { Database } from "./database.types"
 
 export interface SignUpData {
   email: string
@@ -215,4 +218,76 @@ export const authService = {
     if (error) throw error
     return data
   },
+}
+
+export async function createProfileFromAuthUser(
+  supabase: ReturnType<typeof createClient<Database>>,
+  user: User
+): Promise<{ data: Profile | null; error: Error | null }> {
+  try {
+    // Check if profile exists
+    const { data: existingProfile, error: fetchError } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single()
+
+    if (fetchError && fetchError.code !== "PGRST116") {
+      throw fetchError
+    }
+
+    if (existingProfile) {
+      // Update existing profile with latest user data
+      const { data: updatedProfile, error: updateError } = await supabase
+        .from("profiles")
+        .update({
+          email: user.email,
+          first_name: user.user_metadata.first_name || existingProfile.first_name,
+          last_name: user.user_metadata.last_name || existingProfile.last_name,
+          avatar_url: user.user_metadata.avatar_url || existingProfile.avatar_url,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id)
+        .select()
+        .single()
+
+      if (updateError) throw updateError
+      return { data: updatedProfile, error: null }
+    }
+
+    // Create new profile
+    const { data: newProfile, error: insertError } = await supabase
+      .from("profiles")
+      .insert({
+        id: user.id,
+        email: user.email,
+        first_name: user.user_metadata.first_name,
+        last_name: user.user_metadata.last_name,
+        avatar_url: user.user_metadata.avatar_url,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single()
+
+    if (insertError) throw insertError
+    return { data: newProfile, error: null }
+  } catch (error) {
+    console.error("Error in createProfileFromAuthUser:", error)
+    return { data: null, error: error as Error }
+  }
+}
+
+export async function signInWithLinkedIn(supabase: ReturnType<typeof createClient<Database>>) {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "linkedin_oidc",
+    options: {
+      queryParams: {
+        scope: "openid profile email",
+      },
+    },
+  })
+
+  if (error) throw error
+  return data
 }

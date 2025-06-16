@@ -1,13 +1,14 @@
 export interface Profile {
   id: string
+  created_at: string
+  updated_at: string
+  email: string
   first_name: string | null
   last_name: string | null
-  job_title: string | null
-  linkedin_account: string | null
-  email: string | null
-  role: "user" | "admin"
   avatar_url: string | null
-  needs_linkedin: boolean
+  job_title: string | null
+  company: string | null
+  linkedin_account: string | null
 }
 
 export interface Organization {

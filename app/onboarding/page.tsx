@@ -1,8 +1,8 @@
 "use client"
 
-import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { createClient } from "@supabase/supabase-js"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,139 +10,127 @@ import { AuthLayout } from "@/components/auth-layout"
 import { AuthGuard } from "@/components/auth-guard"
 import { useAuth } from "@/hooks/use-auth"
 import { toast } from "sonner"
-import { databaseService } from "@/lib/database"
+import type { Database } from "@/lib/database.types"
+import type { User } from "@supabase/supabase-js"
 
 export default function OnboardingPage() {
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
+    email: "",
     job_title: "",
+    company: "",
     linkedin_account: "",
   })
   const [isLoading, setIsLoading] = useState(false)
-  const { user, refreshUser, signInWithLinkedIn } = useAuth()
+  const { user } = useAuth()
   const router = useRouter()
+  const supabase = createClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 
   useEffect(() => {
-    // Pre-fill form with existing user data if available
     if (user) {
-      console.log('Onboarding - User data:', {
-        id: user.id,
-        email: user.email,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        job_title: user.job_title,
-        linkedin_account: user.linkedin_account,
-        role: user.role,
-        needs_linkedin: user.needs_linkedin
-      })
-      
-      setFormData({
-        first_name: user.first_name || "",
-        last_name: user.last_name || "",
-        job_title: user.job_title || "",
-        linkedin_account: user.linkedin_account || "",
-      })
-    } else {
-      console.log('Onboarding - No user data available')
+      // Pre-fill form with user data
+      setFormData(prev => ({
+        ...prev,
+        first_name: user.user_metadata.first_name || "",
+        last_name: user.user_metadata.last_name || "",
+        email: user.email || "",
+      }))
     }
   }, [user])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    setFormData(prev => ({ ...prev, [name]: value }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user) return
-
     setIsLoading(true)
 
     try {
-      console.log('Onboarding - Starting profile update for user:', user.id)
-      console.log('Onboarding - Form data:', formData)
-
-      // Update/create the user's profile with the provided information
-      const updatedProfile = await databaseService.updateProfile(user.id, {
-        first_name: formData.first_name.trim(),
-        last_name: formData.last_name.trim(),
-        job_title: formData.job_title.trim(),
-        linkedin_account: formData.linkedin_account.trim(),
-      })
-
-      console.log('Onboarding - Profile update successful:', updatedProfile)
-
-      // Refresh user data
-      await refreshUser()
-
-      // If user needs LinkedIn connection, redirect to LinkedIn SSO
-      if (updatedProfile.needs_linkedin) {
-        console.log('Onboarding - User needs LinkedIn connection, redirecting to LinkedIn SSO')
-        await signInWithLinkedIn()
-        return
+      if (!user) {
+        throw new Error("No user found")
       }
-      
-      toast.success("Profile completed successfully!")
+
+      const { error } = await supabase
+        .from("profiles")
+        .upsert({
+          id: user.id,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          email: formData.email,
+          job_title: formData.job_title,
+          company: formData.company,
+          linkedin_account: formData.linkedin_account,
+          updated_at: new Date().toISOString(),
+        })
+
+      if (error) throw error
+
+      toast.success("Profile updated successfully!")
       router.push("/dashboard")
     } catch (error: any) {
-      console.error('Onboarding - Error updating profile:', error)
+      console.error("Error updating profile:", error)
       toast.error(error.message || "Failed to update profile")
     } finally {
       setIsLoading(false)
     }
   }
 
-  const isFormValid = formData.first_name.trim() && 
-                     formData.last_name.trim() && 
-                     formData.job_title.trim() && 
-                     formData.linkedin_account.trim()
-
   return (
-    <AuthGuard skipProfileCheck={true}>
+    <AuthGuard>
       <AuthLayout title="Complete Your Profile">
-        <div className="mb-6 text-center">
-          <p className="text-gray-400 text-sm">
-            All fields are required to access your dashboard
-          </p>
-          <p className="text-gray-500 text-xs mt-1">
-            You cannot proceed until all information is provided
-          </p>
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="first_name" className="text-gray-300">
-                First Name *
-              </Label>
-              <Input
-                id="first_name"
-                name="first_name"
-                value={formData.first_name}
-                onChange={handleInputChange}
-                className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="last_name" className="text-gray-300">
-                Last Name *
-              </Label>
-              <Input
-                id="last_name"
-                name="last_name"
-                value={formData.last_name}
-                onChange={handleInputChange}
-                className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                required
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="first_name" className="text-gray-300">
+              First Name
+            </Label>
+            <Input
+              id="first_name"
+              name="first_name"
+              value={formData.first_name}
+              onChange={handleInputChange}
+              className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="last_name" className="text-gray-300">
+              Last Name
+            </Label>
+            <Input
+              id="last_name"
+              name="last_name"
+              value={formData.last_name}
+              onChange={handleInputChange}
+              className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-gray-300">
+              Email
+            </Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+              required
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="job_title" className="text-gray-300">
-              Job Title *
+              Job Title
             </Label>
             <Input
               id="job_title"
@@ -155,27 +143,35 @@ export default function OnboardingPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="linkedin_account" className="text-gray-300">
-              LinkedIn Profile URL *
+            <Label htmlFor="company" className="text-gray-300">
+              Company
             </Label>
             <Input
-              id="linkedin_account"
-              name="linkedin_account"
-              type="url"
-              value={formData.linkedin_account}
+              id="company"
+              name="company"
+              value={formData.company}
               onChange={handleInputChange}
-              placeholder="https://linkedin.com/in/yourprofile"
               className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
               required
             />
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white" 
-            disabled={isLoading || !isFormValid}
-          >
-            {isLoading ? "Completing Profile..." : "Complete Profile"}
+          <div className="space-y-2">
+            <Label htmlFor="linkedin_account" className="text-gray-300">
+              LinkedIn Profile URL
+            </Label>
+            <Input
+              id="linkedin_account"
+              name="linkedin_account"
+              value={formData.linkedin_account}
+              onChange={handleInputChange}
+              className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+              required
+            />
+          </div>
+
+          <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={isLoading}>
+            {isLoading ? "Saving..." : "Complete Profile"}
           </Button>
         </form>
       </AuthLayout>
