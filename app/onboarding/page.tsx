@@ -41,22 +41,18 @@ export default function OnboardingPage() {
     setIsLoading(true)
 
     try {
-      const fullName = user.user_metadata.full_name || ""
-      const firstName = fullName.split(' ')[0]
-      const lastName = fullName.split(' ').slice(1).join(' ')
-
-      // Update the profile
+      // Update the profile, preserving existing data
       const { error: updateError } = await supabase
         .from("profiles")
         .upsert({
           id: user.id,
           email: user.email,
-          first_name: firstName,
-          last_name: lastName,
+          first_name: user.first_name || user.user_metadata?.first_name || user.user_metadata?.given_name,
+          last_name: user.last_name || user.user_metadata?.last_name || user.user_metadata?.family_name,
           job_title: formData.job_title,
           linkedin_account: formData.linkedin_account,
-          avatar_url: user.user_metadata.avatar_url,
-          needs_linkedin: false, // Set this to false since we have LinkedIn info
+          avatar_url: user.avatar_url || user.user_metadata?.avatar_url,
+          updated_at: new Date().toISOString(),
         })
 
       if (updateError) throw updateError

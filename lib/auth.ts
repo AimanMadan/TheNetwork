@@ -78,25 +78,23 @@ export const authService = {
     console.log('Creating profile from auth user:', user.email)
     console.log('User metadata:', user.user_metadata)
     
-    // Extract data from Google user metadata
+    const isLinkedInSignIn = user.app_metadata?.provider === 'linkedin_oidc'
+
+    // Extract data from user metadata
     const fullName = user.user_metadata?.full_name || user.user_metadata?.name || ""
     const nameParts = fullName.split(' ')
     const firstName = user.user_metadata?.given_name || user.user_metadata?.first_name || nameParts[0] || null
     const lastName = user.user_metadata?.family_name || user.user_metadata?.last_name || nameParts.slice(1).join(' ') || null
-
-    // Check if this is a LinkedIn sign-in
-    const isLinkedInSignIn = user.app_metadata?.provider === 'linkedin_oidc'
     
-    // For non-LinkedIn sign-ins, we don't set any avatar URL
-    // For LinkedIn sign-ins, we use their LinkedIn picture
-    const avatarUrl = isLinkedInSignIn ? 
-      (user.user_metadata?.linkedin_picture || user.user_metadata?.picture_url) : 
-      null
-
-    // For LinkedIn sign-ins, set the LinkedIn URL from metadata
-    const linkedinAccount = isLinkedInSignIn ? 
-      (user.user_metadata?.linkedin_url || user.user_metadata?.profile_url) : 
-      null
+    // For LinkedIn sign-ins, we use their LinkedIn picture and try to find a profile URL
+    const avatarUrl = isLinkedInSignIn 
+      ? (user.user_metadata?.picture || user.user_metadata?.avatar_url) 
+      : null
+    
+    // LinkedIn doesn't provide a clean profile URL, so we mark it for onboarding completion
+    const linkedinAccount = isLinkedInSignIn
+      ? "https://linkedin.com/in/me" // Placeholder, user must update
+      : null
 
     const profileData = {
       id: user.id,
@@ -127,29 +125,22 @@ export const authService = {
   },
 
   isProfileComplete(profile: Profile): boolean {
-    // If user has signed in with LinkedIn and has a LinkedIn URL, consider profile complete
-    const isLinkedInSignIn = profile.avatar_url?.includes('linkedin') || false
-    const hasLinkedInAccount = profile.linkedin_account?.trim() !== "" || false
-    
-    if (isLinkedInSignIn && hasLinkedInAccount) {
-      console.log('Profile completion check: LinkedIn user with LinkedIn URL, skipping onboarding')
-      return true
-    }
-
-    // For non-LinkedIn users or LinkedIn users without URL, check all required fields
     const isComplete = !!(
-      profile.first_name && profile.first_name.trim() !== "" &&
-      profile.last_name && profile.last_name.trim() !== "" &&
-      profile.job_title && profile.job_title.trim() !== "" &&
-      profile.linkedin_account && profile.linkedin_account.trim() !== ""
+      profile.first_name &&
+      profile.first_name.trim() !== "" &&
+      profile.last_name &&
+      profile.last_name.trim() !== "" &&
+      profile.job_title &&
+      profile.job_title.trim() !== "" &&
+      profile.linkedin_account &&
+      profile.linkedin_account.trim() !== ""
     )
+
     console.log('Profile completion check:', {
       first_name: profile.first_name ? `"${profile.first_name}"` : 'NULL/EMPTY',
       last_name: profile.last_name ? `"${profile.last_name}"` : 'NULL/EMPTY', 
       job_title: profile.job_title ? `"${profile.job_title}"` : 'NULL/EMPTY',
       linkedin_account: profile.linkedin_account ? `"${profile.linkedin_account}"` : 'NULL/EMPTY',
-      isLinkedInSignIn,
-      hasLinkedInAccount,
       isComplete
     })
     return isComplete
