@@ -19,8 +19,6 @@ export default function OnboardingPage() {
   )
 
   const [formData, setFormData] = useState({
-    first_name: "",
-    last_name: "",
     job_title: "",
     linkedin_account: "",
   })
@@ -29,8 +27,6 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (user) {
       setFormData({
-        first_name: user.first_name || user.user_metadata?.full_name?.split(' ')[0] || "",
-        last_name: user.last_name || user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || "",
         job_title: user.job_title || "",
         linkedin_account: user.linkedin_account || "",
       })
@@ -51,13 +47,18 @@ export default function OnboardingPage() {
     setIsLoading(true)
 
     try {
+      // Extract first and last name from the full name provided by LinkedIn
+      const fullName = user.user_metadata.full_name || ""
+      const firstName = fullName.split(' ')[0]
+      const lastName = fullName.split(' ').slice(1).join(' ')
+
       const { error } = await supabase
         .from("profiles")
         .upsert({
           id: user.id,
           email: user.email,
-          first_name: formData.first_name,
-          last_name: formData.last_name,
+          first_name: firstName,
+          last_name: lastName,
           job_title: formData.job_title,
           linkedin_account: formData.linkedin_account,
           avatar_url: user.user_metadata.avatar_url,
@@ -76,7 +77,7 @@ export default function OnboardingPage() {
     }
   }
 
-  if (authLoading) {
+  if (authLoading || !user) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-white">Loading...</div>
@@ -94,16 +95,6 @@ export default function OnboardingPage() {
           </p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="first_name" className="text-gray-300">First Name</Label>
-              <Input id="first_name" name="first_name" value={formData.first_name} onChange={handleInputChange} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="last_name" className="text-gray-300">Last Name</Label>
-              <Input id="last_name" name="last_name" value={formData.last_name} onChange={handleInputChange} required />
-            </div>
-          </div>
           <div className="space-y-2">
             <Label htmlFor="job_title" className="text-gray-300">Job Title</Label>
             <Input id="job_title" name="job_title" value={formData.job_title} onChange={handleInputChange} required />
