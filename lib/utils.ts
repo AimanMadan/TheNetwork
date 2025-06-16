@@ -9,11 +9,10 @@ export function cn(...inputs: ClassValue[]) {
 export function isProfileComplete(profile: Profile | null): boolean {
   if (!profile) return false
   
+  // A profile is complete if the main fields from the form are present.
   return !!(
-    profile.id &&
-    profile.email &&
-    profile.full_name &&
-    profile.avatar_url &&
-    profile.company
+    profile.first_name &&
+    profile.last_name &&
+    profile.job_title
   )
 }

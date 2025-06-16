@@ -5,16 +5,10 @@ import { createBrowserClient } from "@supabase/ssr"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { AuthChangeEvent, Session, User as SupabaseUser } from "@supabase/supabase-js"
-
-// The user profile from our "profiles" table. These fields are optional on the final user object.
-interface UserProfile {
-  full_name: string
-  avatar_url: string
-  company: string
-}
+import { Profile } from "@/lib/types"
 
 // The user object available in our hook will be the auth user merged with their profile data.
-type User = SupabaseUser & Partial<UserProfile>
+type User = SupabaseUser & Partial<Profile>
 
 interface AuthContextType {
   user: User | null
@@ -45,7 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Fetch the user's profile from the database
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name, avatar_url, company")
+        .select("*")
         .eq("id", authUser.id)
         .single()
       

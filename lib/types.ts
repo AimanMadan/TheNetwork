@@ -1,16 +1,17 @@
-export interface Profile {
-  id: string
-  created_at: string
-  updated_at: string
-  email: string
-  first_name: string | null
-  last_name: string | null
-  avatar_url: string | null
-  job_title: string | null
-  company: string | null
-  linkedin_account: string | null
-  full_name: string | null
-}
+export type Profile = {
+  id: string;
+  updated_at?: string | null;
+  email?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  job_title?: string | null;
+  linkedin_account?: string | null;
+  avatar_url?: string | null;
+  role?: string | null;
+  // Deprecated columns, no longer in use
+  // company?: string | null;
+  // full_name?: string | null;
+};
 
 export interface Organization {
   id: number

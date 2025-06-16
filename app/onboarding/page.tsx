@@ -8,24 +8,39 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { createBrowserClient } from "@supabase/ssr"
+import { Database } from "@/lib/database.types"
 
 export default function OnboardingPage() {
   const { user, loading: authLoading } = useAuth()
-  const [fullName, setFullName] = useState("")
-  const [company, setCompany] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const supabase = createBrowserClient(
+  const supabase = createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
+  const [formData, setFormData] = useState({
+    first_name: "",
+    last_name: "",
+    job_title: "",
+    linkedin_account: "",
+  })
+  const [isLoading, setIsLoading] = useState(false)
+
   useEffect(() => {
     if (user) {
-      setFullName(user.full_name || "")
-      setCompany(user.company || "")
+      setFormData({
+        first_name: user.first_name || user.user_metadata?.full_name?.split(' ')[0] || "",
+        last_name: user.last_name || user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || "",
+        job_title: user.job_title || "",
+        linkedin_account: user.linkedin_account || "",
+      })
     }
   }, [user])
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -41,12 +56,13 @@ export default function OnboardingPage() {
         .upsert({
           id: user.id,
           email: user.email,
-          full_name: fullName,
-          company: company,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          job_title: formData.job_title,
+          linkedin_account: formData.linkedin_account,
           avatar_url: user.user_metadata.avatar_url,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", user.id)
 
       if (error) throw error
 
@@ -78,27 +94,23 @@ export default function OnboardingPage() {
           </p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <Label htmlFor="fullName" className="text-gray-300">Full Name</Label>
-            <Input
-              id="fullName"
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="mt-2"
-              required
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="first_name" className="text-gray-300">First Name</Label>
+              <Input id="first_name" name="first_name" value={formData.first_name} onChange={handleInputChange} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="last_name" className="text-gray-300">Last Name</Label>
+              <Input id="last_name" name="last_name" value={formData.last_name} onChange={handleInputChange} required />
+            </div>
           </div>
-          <div>
-            <Label htmlFor="company" className="text-gray-300">Company</Label>
-            <Input
-              id="company"
-              type="text"
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
-              className="mt-2"
-              required
-            />
+          <div className="space-y-2">
+            <Label htmlFor="job_title" className="text-gray-300">Job Title</Label>
+            <Input id="job_title" name="job_title" value={formData.job_title} onChange={handleInputChange} required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="linkedin_account" className="text-gray-300">LinkedIn Profile URL</Label>
+            <Input id="linkedin_account" name="linkedin_account" value={formData.linkedin_account} onChange={handleInputChange} />
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Saving..." : "Save and Continue"}
