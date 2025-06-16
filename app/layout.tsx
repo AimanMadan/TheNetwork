@@ -14,7 +14,13 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "The Network",
   description: "A new way to connect with professionals.",
-  generator: 'v0.dev'
+  generator: 'v0.dev',
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', type: 'image/x-icon' }
+    ]
+  }
 }
 
 // Enable dynamic rendering

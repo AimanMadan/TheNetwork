@@ -16,6 +16,7 @@ if (!supabaseAnonKey) {
   throw new Error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable')
 }
 
+// Create a single instance of the Supabase client
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
 
 // Client-side Supabase client

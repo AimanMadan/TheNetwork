@@ -113,10 +113,6 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
-  const supabase = createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -127,9 +123,9 @@ export function useAuth() {
     return () => {
       subscription.unsubscribe()
     }
-  }, [supabase.auth])
+  }, [])
 
-  const signInWithLinkedIn = useCallback(async () => {
+  const signInWithLinkedIn = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "linkedin_oidc",
@@ -144,9 +140,9 @@ export function useAuth() {
       console.error("Error signing in with LinkedIn:", error)
       throw error
     }
-  }, [supabase.auth])
+  }
 
-  const signOut = useCallback(async () => {
+  const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut()
       if (error) throw error
@@ -155,7 +151,7 @@ export function useAuth() {
       console.error("Error signing out:", error)
       throw error
     }
-  }, [supabase.auth, router])
+  }
 
   return {
     user,

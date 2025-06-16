@@ -1,12 +1,11 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
-import { createBrowserClient } from "@supabase/ssr"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { AuthChangeEvent, Session, User as SupabaseUser, SupabaseClient } from "@supabase/supabase-js"
+import { AuthChangeEvent, Session, User as SupabaseUser } from "@supabase/supabase-js"
 import { Profile } from "@/lib/types"
-import { Database } from "@/lib/database.types"
+import { supabase } from "@/lib/supabase"
 
 // The user object available in our hook will be the auth user merged with their profile data.
 type User = SupabaseUser & Partial<Profile>
@@ -14,7 +13,7 @@ type User = SupabaseUser & Partial<Profile>
 interface AuthContextType {
   user: User | null
   loading: boolean
-  supabase: SupabaseClient<Database>
+  supabase: typeof supabase
   refreshUser: () => Promise<void>
   signInWithLinkedIn: () => Promise<void>
   signOut: () => Promise<void>
@@ -26,14 +25,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
-  
-  // Create the client once and provide it through context
-  const [supabase] = useState(() => 
-    createBrowserClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-  )
 
   const getAndSetUser = useCallback(async (authUser: SupabaseUser | null) => {
     try {
@@ -61,13 +52,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }, [supabase])
+  }, [])
   
   // This function can be called from other components to force a refresh
   const refreshUser = useCallback(async () => {
     const { data: { user: authUser } } = await supabase.auth.getUser()
     await getAndSetUser(authUser)
-  }, [supabase, getAndSetUser])
+  }, [getAndSetUser])
 
   useEffect(() => {
     const initialFetch = async () => {
@@ -84,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe()
     }
-  }, [supabase, getAndSetUser, refreshUser])
+  }, [getAndSetUser, refreshUser])
 
   const signInWithLinkedIn = async () => {
     try {
