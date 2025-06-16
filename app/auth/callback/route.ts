@@ -36,14 +36,8 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL("/login?error=Authentication failed", request.url))
     }
 
-    // After getting the user, we need a client with service_role to check the profile
-    // This is a common pattern to avoid exposing sensitive keys on the client-side
-    const serviceSupabase = createClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-
-    const { data: profile, error } = await serviceSupabase
+    // Use the user-authenticated client to fetch the profile, relying on RLS.
+    const { data: profile, error } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", user.id)
