@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/app/hooks/use-auth"
 
 interface AuthGuardProps {
@@ -12,16 +12,20 @@ interface AuthGuardProps {
 export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
   const { user, loading } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
     if (!loading) {
+      // Don't redirect if we're on the home page
+      if (pathname === "/") return
+
       if (requireAuth && !user) {
         router.push("/")
       } else if (!requireAuth && user) {
         router.push("/dashboard")
       }
     }
-  }, [user, loading, requireAuth, router])
+  }, [user, loading, requireAuth, router, pathname])
 
   if (loading) {
     return (
