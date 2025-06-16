@@ -7,16 +7,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { createBrowserClient } from "@supabase/ssr"
-import { Database } from "@/lib/database.types"
 
 export default function OnboardingPage() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, supabase, refreshUser } = useAuth()
   const router = useRouter()
-  const supabase = createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
 
   const [formData, setFormData] = useState({
     job_title: "",
@@ -47,7 +41,6 @@ export default function OnboardingPage() {
     setIsLoading(true)
 
     try {
-      // Extract first and last name from the full name provided by LinkedIn
       const fullName = user.user_metadata.full_name || ""
       const firstName = fullName.split(' ')[0]
       const lastName = fullName.split(' ').slice(1).join(' ')
@@ -65,6 +58,9 @@ export default function OnboardingPage() {
         })
 
       if (error) throw error
+      
+      // Manually refresh the user's profile before redirecting
+      await refreshUser()
 
       toast.success("Profile updated successfully!")
       router.push("/dashboard")
