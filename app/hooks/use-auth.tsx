@@ -30,27 +30,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const getAndSetUser = async (authUser: SupabaseUser | null) => {
-      if (!authUser) {
-        setUser(null)
-        setLoading(false)
-        return
-      }
+      try {
+        if (!authUser) {
+          setUser(null)
+          return
+        }
 
-      // Fetch the user's profile from the database
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", authUser.id)
-        .single()
-      
-      // Merge the auth user with their profile data
-      const mergedUser: User = {
-        ...authUser,
-        ...profile,
+        // Fetch the user's profile from the database
+        const { data: profile, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", authUser.id)
+          .single()
+
+        if (error) {
+          console.error("Error fetching profile for auth hook:", error)
+        }
+        
+        // Merge the auth user with their profile data (profile can be null)
+        const mergedUser: User = {
+          ...authUser,
+          ...profile,
+        }
+        
+        setUser(mergedUser)
+      } catch (error) {
+        console.error("Critical error in getAndSetUser:", error)
+        setUser(null)
+      } finally {
+        setLoading(false)
       }
-      
-      setUser(mergedUser)
-      setLoading(false)
     }
 
     // Run once on mount
