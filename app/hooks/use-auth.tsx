@@ -3,15 +3,16 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { AuthChangeEvent, Session, User as SupabaseUser } from "@supabase/supabase-js"
+import { User as SupabaseUser } from "@supabase/supabase-js"
 import { Profile } from "@/lib/types"
 import { supabase } from "@/lib/supabase"
+import { authService } from "@/lib/auth"
 
 // The user object available in our hook will be the auth user merged with their profile data.
-type User = SupabaseUser & Partial<Profile>
+type EnrichedUser = SupabaseUser & Profile
 
 interface AuthContextType {
-  user: User | null
+  user: EnrichedUser | null
   loading: boolean
   supabase: typeof supabase
   refreshUser: () => Promise<void>
@@ -22,60 +23,51 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<EnrichedUser | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
-  const getAndSetUser = useCallback(async (authUser: SupabaseUser | null) => {
-    try {
-      if (!authUser) {
-        setUser(null)
-        return
-      }
-
-      const { data: profile, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", authUser.id)
-        .single()
-
-      if (error && error.code !== 'PGRST116') {
-        console.error("Error fetching profile for auth hook:", error)
-      }
-      
-      const mergedUser: User = { ...authUser, ...(profile || {}) }
-      setUser(mergedUser)
-
-    } catch (error) {
-      console.error("Critical error in getAndSetUser:", error)
+  const fetchUserProfile = useCallback(async (authUser: SupabaseUser | null) => {
+    if (!authUser) {
       setUser(null)
+      setLoading(false)
+      return
+    }
+
+    setLoading(true)
+    try {
+      const profile = await authService.getCurrentUser()
+      if (profile) {
+        setUser({ ...authUser, ...profile })
+      } else {
+        setUser(authUser as EnrichedUser)
+      }
+    } catch (error) {
+      console.error("Error fetching user profile:", error)
+      setUser(authUser as EnrichedUser)
     } finally {
       setLoading(false)
     }
   }, [])
-  
-  // This function can be called from other components to force a refresh
-  const refreshUser = useCallback(async () => {
-    const { data: { user: authUser } } = await supabase.auth.getUser()
-    await getAndSetUser(authUser)
-  }, [getAndSetUser])
 
   useEffect(() => {
-    const initialFetch = async () => {
-      await refreshUser()
-    }
-    initialFetch()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        getAndSetUser(session?.user ?? null)
-      }
-    )
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      fetchUserProfile(session?.user ?? null)
+    })
 
     return () => {
       subscription.unsubscribe()
     }
-  }, [getAndSetUser, refreshUser])
+  }, [fetchUserProfile])
+
+  const refreshUser = useCallback(async () => {
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser()
+    await fetchUserProfile(authUser)
+  }, [fetchUserProfile])
 
   const signInWithLinkedIn = async () => {
     try {

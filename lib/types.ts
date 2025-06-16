@@ -1,7 +1,7 @@
 export type Profile = {
   id: string;
   updated_at?: string | null;
-  email?: string | null;
+  email: string;
   first_name?: string | null;
   last_name?: string | null;
   job_title?: string | null;
