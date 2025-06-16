@@ -36,24 +36,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        // Fetch the user's profile from the database
         const { data: profile, error } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", authUser.id)
           .single()
 
-        if (error) {
+        if (error && error.code !== 'PGRST116') { // Ignore "no rows found" error for new users
           console.error("Error fetching profile for auth hook:", error)
         }
         
-        // Merge the auth user with their profile data (profile can be null)
-        const mergedUser: User = {
-          ...authUser,
-          ...profile,
-        }
-        
+        const mergedUser: User = { ...authUser, ...(profile || {}) }
         setUser(mergedUser)
+
       } catch (error) {
         console.error("Critical error in getAndSetUser:", error)
         setUser(null)
@@ -71,8 +66,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        await getAndSetUser(session?.user ?? null)
+      (event, session) => {
+        getAndSetUser(session?.user ?? null)
       }
     )
 
