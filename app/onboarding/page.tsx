@@ -1,73 +1,49 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@supabase/supabase-js"
+import { useAuth } from "@/app/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { AuthLayout } from "@/components/auth-layout"
-import { AuthGuard } from "@/components/auth-guard"
-import { useAuth } from "@/hooks/use-auth"
 import { toast } from "sonner"
-import type { Database } from "@/lib/database.types"
-import type { User } from "@supabase/supabase-js"
+import { createBrowserClient } from "@supabase/ssr"
 
 export default function OnboardingPage() {
-  const [formData, setFormData] = useState({
-    first_name: "",
-    last_name: "",
-    email: "",
-    job_title: "",
-    company: "",
-    linkedin_account: "",
-  })
+  const { user, loading: authLoading } = useAuth()
+  const [fullName, setFullName] = useState("")
+  const [company, setCompany] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const { user } = useAuth()
   const router = useRouter()
-  const supabase = createClient<Database>(
+  const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
   useEffect(() => {
     if (user) {
-      // Pre-fill form with user data
-      setFormData(prev => ({
-        ...prev,
-        first_name: user.user_metadata.first_name || "",
-        last_name: user.user_metadata.last_name || "",
-        email: user.email || "",
-      }))
+      setFullName(user.full_name || "")
+      setCompany(user.company || "")
     }
   }, [user])
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!user) {
+      toast.error("You must be logged in to update your profile.")
+      return
+    }
     setIsLoading(true)
 
     try {
-      if (!user) {
-        throw new Error("No user found")
-      }
-
       const { error } = await supabase
         .from("profiles")
-        .upsert({
-          id: user.id,
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          email: formData.email,
-          job_title: formData.job_title,
-          company: formData.company,
-          linkedin_account: formData.linkedin_account,
+        .update({
+          full_name: fullName,
+          company: company,
           updated_at: new Date().toISOString(),
         })
+        .eq("id", user.id)
 
       if (error) throw error
 
@@ -75,106 +51,57 @@ export default function OnboardingPage() {
       router.push("/dashboard")
     } catch (error: any) {
       console.error("Error updating profile:", error)
-      toast.error(error.message || "Failed to update profile")
+      toast.error(error.message || "Failed to update profile.")
     } finally {
       setIsLoading(false)
     }
   }
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    )
+  }
+
   return (
-    <AuthGuard>
-      <AuthLayout title="Complete Your Profile">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="first_name" className="text-gray-300">
-              First Name
-            </Label>
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-md space-y-8 p-8 bg-gray-800 rounded-lg shadow-lg">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-white">Complete Your Profile</h1>
+          <p className="text-gray-400 mt-2">
+            Just a few more details to get you started.
+          </p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <Label htmlFor="fullName" className="text-gray-300">Full Name</Label>
             <Input
-              id="first_name"
-              name="first_name"
-              value={formData.first_name}
-              onChange={handleInputChange}
-              className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+              id="fullName"
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="mt-2"
               required
             />
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="last_name" className="text-gray-300">
-              Last Name
-            </Label>
-            <Input
-              id="last_name"
-              name="last_name"
-              value={formData.last_name}
-              onChange={handleInputChange}
-              className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-gray-300">
-              Email
-            </Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="job_title" className="text-gray-300">
-              Job Title
-            </Label>
-            <Input
-              id="job_title"
-              name="job_title"
-              value={formData.job_title}
-              onChange={handleInputChange}
-              className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="company" className="text-gray-300">
-              Company
-            </Label>
+          <div>
+            <Label htmlFor="company" className="text-gray-300">Company</Label>
             <Input
               id="company"
-              name="company"
-              value={formData.company}
-              onChange={handleInputChange}
-              className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+              type="text"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              className="mt-2"
               required
             />
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="linkedin_account" className="text-gray-300">
-              LinkedIn Profile URL
-            </Label>
-            <Input
-              id="linkedin_account"
-              name="linkedin_account"
-              value={formData.linkedin_account}
-              onChange={handleInputChange}
-              className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-              required
-            />
-          </div>
-
-          <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={isLoading}>
-            {isLoading ? "Saving..." : "Complete Profile"}
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? "Saving..." : "Save and Continue"}
           </Button>
         </form>
-      </AuthLayout>
-    </AuthGuard>
+      </div>
+    </div>
   )
 } 

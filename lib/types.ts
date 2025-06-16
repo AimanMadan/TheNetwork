@@ -9,6 +9,7 @@ export interface Profile {
   job_title: string | null
   company: string | null
   linkedin_account: string | null
+  full_name: string | null
 }
 
 export interface Organization {

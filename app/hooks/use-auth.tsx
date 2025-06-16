@@ -4,16 +4,18 @@ import { createContext, useContext, useEffect, useState } from "react"
 import { createBrowserClient } from "@supabase/ssr"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { AuthChangeEvent, Session } from "@supabase/supabase-js"
+import { AuthChangeEvent, Session, User as SupabaseUser } from "@supabase/supabase-js"
 
-interface User {
+// This is the user profile from our "profiles" table
+interface UserProfile {
   id: string
-  email: string
   full_name: string
   avatar_url: string
   company: string
-  needs_linkedin: boolean
 }
+
+// The user object available in our hook will be a combination of auth user and profile
+type User = SupabaseUser & UserProfile
 
 interface AuthContextType {
   user: User | null
@@ -34,45 +36,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   )
 
   useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        
-        if (session?.user) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", session.user.id)
-            .single()
-
-          if (profile) {
-            setUser(profile)
-          }
-        }
-      } catch (error) {
-        console.error("Error checking user:", error)
-      } finally {
-        setLoading(false)
-      }
+    const getFullUserProfile = async (authUser: SupabaseUser): Promise<User | null> => {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", authUser.id)
+        .single()
+      
+      return profile ? { ...authUser, ...profile } : null
     }
 
-    checkUser()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
-      if (event === "SIGNED_IN" && session?.user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", session.user.id)
-          .single()
-
-        if (profile) {
-          setUser(profile)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event: AuthChangeEvent, session: Session | null) => {
+        if (session?.user) {
+          const fullUserProfile = await getFullUserProfile(session.user)
+          setUser(fullUserProfile)
+        } else {
+          setUser(null)
         }
-      } else if (event === "SIGNED_OUT") {
-        setUser(null)
+        setLoading(false)
       }
-    })
+    )
+
+    // Check for initial session
+    const checkInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        const fullUserProfile = await getFullUserProfile(session.user)
+        setUser(fullUserProfile)
+      }
+      setLoading(false)
+    }
+
+    checkInitialSession()
 
     return () => {
       subscription.unsubscribe()
