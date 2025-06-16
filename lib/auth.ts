@@ -102,39 +102,9 @@ export const authService = {
       linkedin_account: null,
       role: "user" as const,
       avatar_url: avatarUrl,
-      needs_linkedin: !isLinkedInSignIn, // Flag to indicate if LinkedIn connection is needed
     }
 
     console.log('Profile data to insert:', profileData)
-
-    // For non-LinkedIn sign-ins, we need to update the profile to force LinkedIn connection
-    if (!isLinkedInSignIn) {
-      const { data: existingProfile, error: checkError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single()
-
-      if (existingProfile) {
-        // Update existing profile to force LinkedIn connection
-        const { data: updatedProfile, error: updateError } = await supabase
-          .from("profiles")
-          .update({
-            needs_linkedin: true,
-            avatar_url: null // Remove any existing avatar URL
-          })
-          .eq("id", user.id)
-          .select()
-          .single()
-
-        if (updateError) {
-          console.error('Error updating profile:', updateError)
-          throw updateError
-        }
-
-        return updatedProfile as Profile
-      }
-    }
 
     const { data: profile, error } = await supabase
       .from("profiles")
@@ -152,25 +122,17 @@ export const authService = {
   },
 
   isProfileComplete(profile: Profile): boolean {
-    // If user needs LinkedIn connection, profile is not complete
-    if (profile.needs_linkedin) {
-      return false
-    }
-
     const isComplete = !!(
       profile.first_name && profile.first_name.trim() !== "" &&
       profile.last_name && profile.last_name.trim() !== "" &&
       profile.job_title && profile.job_title.trim() !== "" &&
-      profile.linkedin_account && profile.linkedin_account.trim() !== "" &&
-      this.isLinkedInConnected(profile)
+      profile.linkedin_account && profile.linkedin_account.trim() !== ""
     )
     console.log('Profile completion check:', {
       first_name: profile.first_name ? `"${profile.first_name}"` : 'NULL/EMPTY',
       last_name: profile.last_name ? `"${profile.last_name}"` : 'NULL/EMPTY', 
       job_title: profile.job_title ? `"${profile.job_title}"` : 'NULL/EMPTY',
       linkedin_account: profile.linkedin_account ? `"${profile.linkedin_account}"` : 'NULL/EMPTY',
-      isLinkedInConnected: this.isLinkedInConnected(profile),
-      needs_linkedin: profile.needs_linkedin,
       isComplete
     })
     return isComplete
@@ -180,9 +142,8 @@ export const authService = {
     // Check if the user has connected their LinkedIn account
     const hasLinkedInAvatar = profile.avatar_url?.includes('linkedin') || false
     const hasLinkedInAccount = profile.linkedin_account?.trim() !== "" || false
-    const isLinkedInSignIn = !profile.needs_linkedin
     
-    return hasLinkedInAvatar || hasLinkedInAccount || isLinkedInSignIn
+    return hasLinkedInAvatar || hasLinkedInAccount
   },
 
   onAuthStateChange(callback: (user: any) => void) {
