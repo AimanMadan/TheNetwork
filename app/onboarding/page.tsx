@@ -45,7 +45,8 @@ export default function OnboardingPage() {
       const firstName = fullName.split(' ')[0]
       const lastName = fullName.split(' ').slice(1).join(' ')
 
-      const { error } = await supabase
+      // Update the profile
+      const { error: updateError } = await supabase
         .from("profiles")
         .upsert({
           id: user.id,
@@ -55,12 +56,42 @@ export default function OnboardingPage() {
           job_title: formData.job_title,
           linkedin_account: formData.linkedin_account,
           avatar_url: user.user_metadata.avatar_url,
+          needs_linkedin: false, // Set this to false since we have LinkedIn info
         })
 
-      if (error) throw error
+      if (updateError) throw updateError
       
-      // Manually refresh the user's profile before redirecting
+      // Refresh the user's profile
       await refreshUser()
+
+      // Verify the profile is complete
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single()
+
+      if (profileError) throw profileError
+
+      if (!profile) {
+        throw new Error("Profile not found after update")
+      }
+
+      // Check if all required fields are filled
+      const isComplete = !!(
+        profile.first_name &&
+        profile.first_name.trim() !== "" &&
+        profile.last_name &&
+        profile.last_name.trim() !== "" &&
+        profile.job_title &&
+        profile.job_title.trim() !== "" &&
+        profile.linkedin_account &&
+        profile.linkedin_account.trim() !== ""
+      )
+
+      if (!isComplete) {
+        throw new Error("Please fill in all required fields")
+      }
 
       toast.success("Profile updated successfully!")
       router.push("/dashboard")
@@ -96,7 +127,7 @@ export default function OnboardingPage() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="linkedin_account" className="text-gray-300">LinkedIn Profile URL</Label>
-            <Input id="linkedin_account" name="linkedin_account" value={formData.linkedin_account} onChange={handleInputChange} />
+            <Input id="linkedin_account" name="linkedin_account" value={formData.linkedin_account} onChange={handleInputChange} required />
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Saving..." : "Save and Continue"}
