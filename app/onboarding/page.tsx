@@ -62,7 +62,6 @@ export default function OnboardingPage() {
           job_title: formData.job_title,
           linkedin_account: formData.linkedin_account,
           avatar_url: user.user_metadata.avatar_url,
-          updated_at: new Date().toISOString(),
         })
 
       if (error) throw error
