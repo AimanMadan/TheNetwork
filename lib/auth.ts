@@ -93,13 +93,18 @@ export const authService = {
       (user.user_metadata?.linkedin_picture || user.user_metadata?.picture_url) : 
       null
 
+    // For LinkedIn sign-ins, set the LinkedIn URL from metadata
+    const linkedinAccount = isLinkedInSignIn ? 
+      (user.user_metadata?.linkedin_url || user.user_metadata?.profile_url) : 
+      null
+
     const profileData = {
       id: user.id,
       email: user.email,
       first_name: firstName,
       last_name: lastName,
       job_title: null,
-      linkedin_account: null,
+      linkedin_account: linkedinAccount,
       role: "user" as const,
       avatar_url: avatarUrl,
     }
@@ -122,6 +127,16 @@ export const authService = {
   },
 
   isProfileComplete(profile: Profile): boolean {
+    // If user has signed in with LinkedIn and has a LinkedIn URL, consider profile complete
+    const isLinkedInSignIn = profile.avatar_url?.includes('linkedin') || false
+    const hasLinkedInAccount = profile.linkedin_account?.trim() !== "" || false
+    
+    if (isLinkedInSignIn && hasLinkedInAccount) {
+      console.log('Profile completion check: LinkedIn user with LinkedIn URL, skipping onboarding')
+      return true
+    }
+
+    // For non-LinkedIn users or LinkedIn users without URL, check all required fields
     const isComplete = !!(
       profile.first_name && profile.first_name.trim() !== "" &&
       profile.last_name && profile.last_name.trim() !== "" &&
@@ -133,6 +148,8 @@ export const authService = {
       last_name: profile.last_name ? `"${profile.last_name}"` : 'NULL/EMPTY', 
       job_title: profile.job_title ? `"${profile.job_title}"` : 'NULL/EMPTY',
       linkedin_account: profile.linkedin_account ? `"${profile.linkedin_account}"` : 'NULL/EMPTY',
+      isLinkedInSignIn,
+      hasLinkedInAccount,
       isComplete
     })
     return isComplete
