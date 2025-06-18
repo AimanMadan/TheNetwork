@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Linkedin, Mail } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface ProfilePageProps {
   params: {
@@ -44,9 +45,12 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center text-2xl font-bold">
-              {profile.first_name?.[0]}{profile.last_name?.[0]}
-            </div>
+            <Avatar className="w-16 h-16">
+              <AvatarImage src={profile.avatar_url || "/placeholder-user.jpg"} />
+              <AvatarFallback>
+                {`${profile.first_name?.[0] || ""}${profile.last_name?.[0] || ""}`.toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
             <div>
               <h2 className="text-2xl font-bold">{profile.first_name} {profile.last_name}</h2>
               <p className="text-gray-400">{profile.job_title || "No job title provided"}</p>
