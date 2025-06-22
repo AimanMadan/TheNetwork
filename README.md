@@ -171,7 +171,7 @@ Most application operations are handled through the `databaseService` in `lib/da
 - `getOrganizationMemberCounts()`: Get member counts per organization
 - `getOrganizationPendingCounts()`: Get pending request counts per organization
 
-### Database Schema (Actual Implementation)
+### Database Schema
 
 Based on the code analysis, the actual database schema includes fields not reflected in the generated types:
 
@@ -183,9 +183,7 @@ Based on the code analysis, the actual database schema includes fields not refle
 - `job_title` (string, nullable)
 - `linkedin_account` (string, nullable)
 - `avatar_url` (string, nullable)
-- `role` (string, nullable) - **Missing from generated types**
-- `created_at` (timestamp)
-- `updated_at` (timestamp)
+- `role` (string, nullable)
 
 #### Organizations Table
 - `id` (number, primary key)
